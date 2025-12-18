@@ -68,7 +68,7 @@
 ## 🖥️ Ekran Görüntüleri
 
 <p align="center">
-  <i>Ekran görüntüleri yakında eklenecek...</i>
+  <img src="docs/screenshot.png" alt="MediaGrab Screenshot" width="800">
 </p>
 
 ---
