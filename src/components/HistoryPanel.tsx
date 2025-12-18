@@ -144,15 +144,17 @@ export function HistoryPanel({ isOpen, onClose, onRedownload }: HistoryPanelProp
     const diffDays = Math.floor(
       (now.getTime() - date.getTime()) / (1000 * 60 * 60 * 24)
     );
+    
+    const timeStr = date.toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit' });
 
     if (diffDays === 0) {
-      return `Bugün ${date.toLocaleTimeString('tr-TR', { hour: '2-digit', minute: '2-digit' })}`;
+      return `${t('history.today')} ${timeStr}`;
     } else if (diffDays === 1) {
-      return `Dün ${date.toLocaleTimeString('tr-TR', { hour: '2-digit', minute: '2-digit' })}`;
+      return `${t('history.yesterday')} ${timeStr}`;
     } else if (diffDays < 7) {
-      return date.toLocaleDateString('tr-TR', { weekday: 'long', hour: '2-digit', minute: '2-digit' });
+      return date.toLocaleDateString(undefined, { weekday: 'long', hour: '2-digit', minute: '2-digit' });
     }
-    return date.toLocaleDateString('tr-TR', {
+    return date.toLocaleDateString(undefined, {
       day: 'numeric',
       month: 'short',
       year: 'numeric',
@@ -185,7 +187,7 @@ export function HistoryPanel({ isOpen, onClose, onRedownload }: HistoryPanelProp
               <div className="flex items-center justify-between border-b border-border px-6 py-4">
                 <div className="flex items-center gap-2">
                   <History className="h-5 w-5" />
-                  <h2 className="text-lg font-semibold">İndirme Geçmişi</h2>
+                  <h2 className="text-lg font-semibold">{t('history.title')}</h2>
                 </div>
                 <Button variant="ghost" size="icon" onClick={onClose}>
                   <X className="h-4 w-4" />
@@ -200,21 +202,21 @@ export function HistoryPanel({ isOpen, onClose, onRedownload }: HistoryPanelProp
                       <Download className="h-5 w-5" />
                       {stats.totalDownloads}
                     </div>
-                    <div className="text-xs text-muted-foreground">Toplam</div>
+                    <div className="text-xs text-muted-foreground">{t('history.totalDownloads')}</div>
                   </div>
                   <div className="text-center">
                     <div className="flex items-center justify-center gap-1 text-2xl font-bold text-green-500">
                       <HardDrive className="h-5 w-5" />
                       {formatBytes(stats.totalBytesDownloaded)}
                     </div>
-                    <div className="text-xs text-muted-foreground">İndirilen</div>
+                    <div className="text-xs text-muted-foreground">{t('history.totalSize')}</div>
                   </div>
                   <div className="text-center">
                     <div className="flex items-center justify-center gap-1 text-2xl font-bold text-blue-500">
                       <Clock className="h-5 w-5" />
                       {formatDuration(stats.totalDurationSeconds)}
                     </div>
-                    <div className="text-xs text-muted-foreground">Süre</div>
+                    <div className="text-xs text-muted-foreground">{t('history.totalDuration')}</div>
                   </div>
                 </div>
               )}
@@ -225,7 +227,7 @@ export function HistoryPanel({ isOpen, onClose, onRedownload }: HistoryPanelProp
                   <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
                   <input
                     type="text"
-                    placeholder="Ara..."
+                    placeholder={t('form.urlPlaceholder').split(' ')[0] + '...'}
                     value={searchQuery}
                     onChange={(e) => setSearchQuery(e.target.value)}
                     className="w-full rounded-md border border-input bg-background py-2 pl-9 pr-3 text-sm focus:outline-none focus:ring-2 focus:ring-ring"
@@ -236,9 +238,9 @@ export function HistoryPanel({ isOpen, onClose, onRedownload }: HistoryPanelProp
                   onChange={(e) => setFilter(e.target.value as typeof filter)}
                   className="rounded-md border border-input bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ring"
                 >
-                  <option value="all">Tümü</option>
-                  <option value="completed">Başarılı</option>
-                  <option value="failed">Başarısız</option>
+                  <option value="all">{t('queue.title').split(' ')[0]}</option>
+                  <option value="completed">{t('history.successful')}</option>
+                  <option value="failed">{t('history.failedCount')}</option>
                 </select>
               </div>
 
@@ -307,7 +309,7 @@ export function HistoryPanel({ isOpen, onClose, onRedownload }: HistoryPanelProp
                     onClick={clearHistory}
                   >
                     <Trash2 className="mr-2 h-4 w-4" />
-                    Geçmişi Temizle
+                    {t('history.clearHistory')}
                   </Button>
                 </div>
               )}
@@ -414,7 +416,6 @@ function HistoryItemCard({
               onClick={() => onOpenFile(item.filePath!)}
             >
               <Play className="mr-1 h-3 w-3" />
-              Oynat
             </Button>
             <Button
               variant="ghost"
@@ -423,7 +424,6 @@ function HistoryItemCard({
               onClick={() => onOpenFolder(item.filePath!)}
             >
               <ExternalLink className="mr-1 h-3 w-3" />
-              Klasör
             </Button>
           </>
         )}
@@ -434,7 +434,6 @@ function HistoryItemCard({
           onClick={onRedownload}
         >
           <RefreshCw className="mr-1 h-3 w-3" />
-          Tekrar İndir
         </Button>
         <Button
           variant="ghost"

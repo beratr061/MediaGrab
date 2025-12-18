@@ -51,6 +51,7 @@ const DEFAULT_PREFERENCES: Preferences = {
   proxyEnabled: false,
   proxyUrl: null,
   filenameTemplate: null,
+  cookiesFilePath: null,
 };
 
 export function SettingsPanel({ isOpen, onClose, preferences, onPreferencesChange }: SettingsPanelProps) {
@@ -74,6 +75,7 @@ export function SettingsPanel({ isOpen, onClose, preferences, onPreferencesChang
   const [proxyUrl, setProxyUrl] = useState(preferences?.proxyUrl ?? "");
   const [filenameTemplate, setFilenameTemplate] = useState(preferences?.filenameTemplate ?? "");
   const [checkAppUpdatesOnStartup, setCheckAppUpdatesOnStartup] = useState(preferences?.checkAppUpdatesOnStartup ?? true);
+  const [cookiesFilePath, setCookiesFilePath] = useState<string>(preferences?.cookiesFilePath ?? "");
 
   const currentLanguage = (i18n.language?.split("-")[0] || "en") as SupportedLanguage;
 
@@ -112,6 +114,7 @@ export function SettingsPanel({ isOpen, onClose, preferences, onPreferencesChang
       setProxyUrl(preferences.proxyUrl ?? "");
       setCheckAppUpdatesOnStartup(preferences.checkAppUpdatesOnStartup ?? true);
       setFilenameTemplate(preferences.filenameTemplate ?? "");
+      setCookiesFilePath(preferences.cookiesFilePath ?? "");
     }
   }, [preferences]);
 
@@ -144,6 +147,21 @@ export function SettingsPanel({ isOpen, onClose, preferences, onPreferencesChang
   const handleProxyUrlChange = useCallback((value: string) => { setProxyUrl(value); savePreference("proxyUrl", value || null); }, [savePreference]);
   const handleFilenameTemplateChange = useCallback((value: string) => { setFilenameTemplate(value); savePreference("filenameTemplate", value || null); }, [savePreference]);
   const handleCheckAppUpdatesToggle = useCallback(() => { const v = !checkAppUpdatesOnStartup; setCheckAppUpdatesOnStartup(v); savePreference("checkAppUpdatesOnStartup", v); }, [checkAppUpdatesOnStartup, savePreference]);
+  const handlePickCookiesFile = useCallback(async () => {
+    try {
+      const filePath = await invoke<string | null>("pick_cookies_file");
+      if (filePath) {
+        setCookiesFilePath(filePath);
+        savePreference("cookiesFilePath", filePath);
+      }
+    } catch (err) {
+      console.error("Failed to pick cookies file:", err);
+    }
+  }, [savePreference]);
+  const handleClearCookiesFile = useCallback(() => {
+    setCookiesFilePath("");
+    savePreference("cookiesFilePath", null);
+  }, [savePreference]);
 
   const handleCheckAppUpdate = useCallback(async () => {
     setCheckingAppUpdate(true);
@@ -293,9 +311,38 @@ export function SettingsPanel({ isOpen, onClose, preferences, onPreferencesChang
                   {activeTab === "advanced" && (
                     <div className="space-y-6">
                       <Section title={t("settings.cookies")} icon={<Cookie className="h-4 w-4" />}>
-                        <div className="space-y-3">
+                        <div className="space-y-4">
                           <p className="text-xs text-muted-foreground">{t("settings.cookiesDescription")}</p>
-                          <Select value={cookiesFromBrowser} onChange={handleCookieBrowserChange} options={browserOptions} />
+                          
+                          {/* Custom cookies.txt file */}
+                          <div className="space-y-2">
+                            <label className="text-sm font-medium">{t("settings.cookiesFile")}</label>
+                            <div className="flex gap-2">
+                              <input
+                                type="text"
+                                value={cookiesFilePath}
+                                readOnly
+                                placeholder={t("settings.cookiesFilePlaceholder")}
+                                className="flex-1 rounded-md border border-input bg-muted/50 px-3 py-2 text-sm"
+                              />
+                              <Button variant="outline" size="sm" onClick={handlePickCookiesFile}>
+                                {t("buttons.browse")}
+                              </Button>
+                              {cookiesFilePath && (
+                                <Button variant="ghost" size="sm" onClick={handleClearCookiesFile}>
+                                  <X className="h-4 w-4" />
+                                </Button>
+                              )}
+                            </div>
+                            <p className="text-xs text-muted-foreground">{t("settings.cookiesFileDescription")}</p>
+                          </div>
+                          
+                          {/* Browser cookies (fallback) */}
+                          <div className="space-y-2">
+                            <label className="text-sm font-medium">{t("settings.cookiesBrowser")}</label>
+                            <Select value={cookiesFromBrowser} onChange={handleCookieBrowserChange} options={browserOptions} disabled={!!cookiesFilePath} />
+                            {cookiesFilePath && <p className="text-xs text-muted-foreground">{t("settings.cookiesFileOverride")}</p>}
+                          </div>
                         </div>
                       </Section>
                       <Section title={t("settings.proxy")} icon={<Globe className="h-4 w-4" />}>

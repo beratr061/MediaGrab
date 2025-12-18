@@ -66,6 +66,11 @@ pub async fn spawn_ytdlp(
         builder = builder.with_ffmpeg_location(ffmpeg_path.clone());
     }
     
+    // Add proxy if configured
+    if let Some(ref proxy) = config.proxy_url {
+        builder = builder.with_proxy(Some(proxy.clone()));
+    }
+    
     let args = builder.build();
     
     // Verify output folder exists and is accessible

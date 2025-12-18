@@ -39,6 +39,12 @@ pub struct DownloadConfig {
     /// Custom filename template (e.g., "{title} - {uploader} [{quality}]")
     #[serde(default)]
     pub filename_template: Option<String>,
+    /// Proxy URL (e.g., "http://127.0.0.1:8080" or "socks5://127.0.0.1:1080")
+    #[serde(default)]
+    pub proxy_url: Option<String>,
+    /// Path to custom cookies.txt file (Netscape format)
+    #[serde(default)]
+    pub cookies_file_path: Option<String>,
 }
 
 /// Result of a download operation

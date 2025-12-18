@@ -248,6 +248,9 @@ export function useDownload({
       outputFolder: targetFolder,
       embedSubtitles: preferences?.embedSubtitles ?? false,
       cookiesFromBrowser: preferences?.cookiesFromBrowser ?? null,
+      filenameTemplate: preferences?.filenameTemplate ?? null,
+      proxyUrl: preferences?.proxyEnabled ? preferences?.proxyUrl : null,
+      cookiesFilePath: preferences?.cookiesFilePath ?? null,
     };
 
     try {

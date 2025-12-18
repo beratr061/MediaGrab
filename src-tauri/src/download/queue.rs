@@ -334,6 +334,60 @@ impl DownloadQueue {
             }
         }
     }
+
+    /// Reorders items in the pending queue
+    pub async fn reorder(&self, ids: Vec<QueueItemId>) {
+        let mut pending = self.pending.write().await;
+        // Keep only IDs that are actually in pending
+        let valid_ids: Vec<QueueItemId> = ids
+            .into_iter()
+            .filter(|id| pending.contains(id))
+            .collect();
+        
+        // Get remaining IDs not in the new order
+        let remaining: Vec<QueueItemId> = pending
+            .iter()
+            .filter(|id| !valid_ids.contains(id))
+            .copied()
+            .collect();
+        
+        // Rebuild pending queue
+        pending.clear();
+        for id in valid_ids {
+            pending.push_back(id);
+        }
+        for id in remaining {
+            pending.push_back(id);
+        }
+    }
+
+    /// Pauses all pending downloads (moves them to a paused state)
+    pub async fn pause_all(&self) {
+        // For now, we just clear the pending queue
+        // Items stay in the list but won't be processed
+        let mut pending = self.pending.write().await;
+        let ids: Vec<QueueItemId> = pending.drain(..).collect();
+        
+        let mut items = self.items.write().await;
+        for id in ids {
+            if let Some(item) = items.iter_mut().find(|i| i.id == id) {
+                // Keep as pending but won't be picked up
+                let _ = self.event_tx.send(QueueEvent::ItemUpdated { item: item.clone() });
+            }
+        }
+    }
+
+    /// Resumes all paused downloads
+    pub async fn resume_all(&self) {
+        let items = self.items.read().await;
+        let mut pending = self.pending.write().await;
+        
+        for item in items.iter() {
+            if item.status == QueueItemStatus::Pending && !pending.contains(&item.id) {
+                pending.push_back(item.id);
+            }
+        }
+    }
 }
 
 /// Thread-safe wrapper for the download queue

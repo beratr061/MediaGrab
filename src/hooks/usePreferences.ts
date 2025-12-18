@@ -41,6 +41,7 @@ export function usePreferences() {
         proxyEnabled: false,
         proxyUrl: null,
         filenameTemplate: null,
+        cookiesFilePath: null,
       });
     } finally {
       setLoading(false);
@@ -126,8 +127,9 @@ export function usePreferences() {
   const setFullPreferences = useCallback(
     (prefs: Preferences) => {
       setPreferences(prefs);
+      debouncedSave(prefs);
     },
-    []
+    [debouncedSave]
   );
 
   return {

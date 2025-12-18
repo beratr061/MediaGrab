@@ -29,6 +29,7 @@ const preferencesArbitrary = fc.record({
   proxyEnabled: fc.boolean(),
   proxyUrl: fc.option(fc.string(), { nil: null }),
   filenameTemplate: fc.option(fc.string(), { nil: null }),
+  cookiesFilePath: fc.option(fc.string(), { nil: null }),
 });
 
 describe('Preferences Round-Trip - Property Tests', () => {
@@ -85,6 +86,7 @@ describe('Preferences Round-Trip - Property Tests', () => {
             proxyEnabled: false,
             proxyUrl: null,
             filenameTemplate: null,
+            cookiesFilePath: null,
           };
           
           const json = JSON.stringify(prefs);
@@ -113,6 +115,7 @@ describe('Preferences Round-Trip - Property Tests', () => {
             proxyEnabled: false,
             proxyUrl: null,
             filenameTemplate: null,
+            cookiesFilePath: null,
           };
           
           const json = JSON.stringify(prefs);
@@ -141,6 +144,7 @@ describe('Preferences Round-Trip - Property Tests', () => {
             proxyEnabled: false,
             proxyUrl: null,
             filenameTemplate: null,
+            cookiesFilePath: null,
           };
           
           const json = JSON.stringify(prefs);
@@ -165,6 +169,7 @@ describe('Preferences Round-Trip - Property Tests', () => {
       proxyEnabled: false,
       proxyUrl: null,
       filenameTemplate: null,
+      cookiesFilePath: null,
     };
     
     const json = JSON.stringify(prefs);
@@ -188,6 +193,7 @@ describe('Preferences Round-Trip - Property Tests', () => {
         proxyEnabled: false,
         proxyUrl: null,
         filenameTemplate: null,
+        cookiesFilePath: null,
       };
       
       const json = JSON.stringify(prefs);

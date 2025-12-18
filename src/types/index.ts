@@ -50,6 +50,8 @@ export interface DownloadConfig {
   embedSubtitles: boolean;
   cookiesFromBrowser: string | null; // 'chrome' | 'firefox' | 'edge' | null
   filenameTemplate?: string | null; // Custom filename template
+  proxyUrl?: string | null; // Proxy URL (e.g., "http://127.0.0.1:8080")
+  cookiesFilePath?: string | null; // Path to custom cookies.txt file
 }
 
 // Progress event from backend
@@ -84,6 +86,8 @@ export interface Preferences {
   proxyUrl: string | null; // e.g., "http://127.0.0.1:8080" or "socks5://127.0.0.1:1080"
   // Filename template
   filenameTemplate: string | null; // e.g., "{title} - {uploader} [{quality}]"
+  // Custom cookies file
+  cookiesFilePath: string | null; // Path to cookies.txt file (Netscape format)
 }
 
 // Disk space information from backend

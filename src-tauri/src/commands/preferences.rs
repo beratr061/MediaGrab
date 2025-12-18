@@ -36,6 +36,9 @@ pub struct Preferences {
     /// Custom filename template (e.g., "{title} - {uploader} [{quality}]")
     #[serde(default)]
     pub filename_template: Option<String>,
+    /// Path to custom cookies.txt file (Netscape format)
+    #[serde(default)]
+    pub cookies_file_path: Option<String>,
 }
 
 fn default_true() -> bool {
@@ -55,6 +58,7 @@ impl Default for Preferences {
             proxy_enabled: false,
             proxy_url: None,
             filename_template: None,
+            cookies_file_path: None,
         }
     }
 }
@@ -147,6 +151,7 @@ mod tests {
             proxy_enabled: false,
             proxy_url: None,
             filename_template: Some("{title} - {uploader}".to_string()),
+            cookies_file_path: None,
         };
         
         let json = serde_json::to_string(&prefs).unwrap();

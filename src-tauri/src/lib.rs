@@ -9,7 +9,7 @@ use commands::debug::{copy_debug_info, get_recent_logs};
 use commands::download::{cancel_download, get_download_state, reset_download, start_download};
 use commands::executables::{check_executables, get_executable_paths};
 use commands::folder::{
-    check_disk_space, check_folder_accessible, open_file, open_folder, pick_folder,
+    check_disk_space, check_folder_accessible, open_file, open_folder, pick_cookies_file, pick_folder,
     validate_folder_for_download,
 };
 use commands::history::{history_add, history_clear, history_get_all, history_get_stats, history_remove};
@@ -19,7 +19,7 @@ use commands::preferences::{load_preferences, save_preferences};
 use commands::subtitles::fetch_subtitles;
 use commands::queue::{
     queue_add, queue_cancel, queue_clear_completed, queue_get_all, queue_move_down, queue_move_up,
-    queue_remove, setup_queue_events, start_queue_processor,
+    queue_pause_all, queue_remove, queue_reorder, queue_resume_all, setup_queue_events, start_queue_processor,
 };
 use commands::update::{check_app_update, check_ytdlp_update, get_app_version, get_ytdlp_version_cmd, install_app_update, update_ytdlp};
 use download::{create_download_manager, create_download_queue, SharedDownloadManager};
@@ -280,6 +280,7 @@ pub fn run() {
             reset_download,
             fetch_media_info,
             pick_folder,
+            pick_cookies_file,
             check_folder_accessible,
             check_disk_space,
             validate_folder_for_download,
@@ -300,6 +301,9 @@ pub fn run() {
             queue_clear_completed,
             queue_move_up,
             queue_move_down,
+            queue_reorder,
+            queue_pause_all,
+            queue_resume_all,
             // History commands
             history_add,
             history_get_all,

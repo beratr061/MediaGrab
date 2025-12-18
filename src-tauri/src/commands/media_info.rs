@@ -9,21 +9,45 @@ use std::process::Stdio;
 
 use crate::models::{DownloadError, MediaInfo};
 use crate::utils::create_hidden_async_command;
+use tauri_plugin_store::StoreExt;
 
 /// Fetches media information from a URL using yt-dlp
 ///
 /// Runs `yt-dlp --simulate -J <url>` to get JSON metadata without downloading.
+/// Uses cookies from preferences if available (for Instagram, etc.)
 ///
 /// **Validates: Requirements 12.3**
 #[tauri::command]
-pub async fn fetch_media_info(url: String) -> Result<MediaInfo, String> {
+pub async fn fetch_media_info(url: String, app: tauri::AppHandle) -> Result<MediaInfo, String> {
     if url.trim().is_empty() {
         return Err(DownloadError::InvalidUrl("URL cannot be empty".to_string()).to_string());
     }
 
+    // Get cookies settings from preferences
+    let (cookies_file_path, cookies_from_browser) = get_cookies_from_preferences(&app);
+
+    // Build command arguments
+    let mut args = vec!["--simulate", "-J", "--no-playlist"];
+    
+    // Add cookies arguments if available
+    let cookies_file_arg: String;
+    let cookies_browser_arg: String;
+    
+    if let Some(ref file_path) = cookies_file_path {
+        cookies_file_arg = file_path.clone();
+        args.push("--cookies");
+        args.push(&cookies_file_arg);
+    } else if let Some(ref browser) = cookies_from_browser {
+        cookies_browser_arg = browser.clone();
+        args.push("--cookies-from-browser");
+        args.push(&cookies_browser_arg);
+    }
+    
+    args.push(&url);
+
     // Run yt-dlp with --simulate -J to get JSON metadata (hidden window)
     let output = create_hidden_async_command("yt-dlp")
-        .args(["--simulate", "-J", "--no-playlist", &url])
+        .args(&args)
         .stdout(Stdio::piped())
         .stderr(Stdio::piped())
         .output()
@@ -55,9 +79,27 @@ fn parse_media_info_json(json_str: &str) -> Result<MediaInfo, String> {
         .unwrap_or("Unknown Title")
         .to_string();
 
+    // Try multiple sources for thumbnail:
+    // 1. Direct thumbnail field
+    // 2. thumbnails array (last item is usually highest quality)
+    // 3. For Instagram: display_url field
     let thumbnail = json["thumbnail"]
         .as_str()
-        .map(|s| s.to_string());
+        .map(|s| s.to_string())
+        .or_else(|| {
+            // Try thumbnails array - get the last (highest quality) one
+            json["thumbnails"]
+                .as_array()
+                .and_then(|arr| {
+                    arr.iter()
+                        .rev()
+                        .find_map(|t| t["url"].as_str().map(|s| s.to_string()))
+                })
+        })
+        .or_else(|| {
+            // Instagram specific: display_url
+            json["display_url"].as_str().map(|s| s.to_string())
+        });
 
     let duration = json["duration"].as_f64();
 
@@ -88,6 +130,33 @@ fn parse_media_info_json(json_str: &str) -> Result<MediaInfo, String> {
         uploader,
         filesize_approx,
     })
+}
+
+/// Gets cookies settings from preferences store
+fn get_cookies_from_preferences(app: &tauri::AppHandle) -> (Option<String>, Option<String>) {
+    let store = match app.store("preferences.json") {
+        Ok(s) => s,
+        Err(_) => return (None, None),
+    };
+
+    let prefs = match store.get("preferences") {
+        Some(v) => v,
+        None => return (None, None),
+    };
+
+    let cookies_file_path = prefs
+        .get("cookiesFilePath")
+        .and_then(|v| v.as_str())
+        .filter(|s| !s.is_empty())
+        .map(|s| s.to_string());
+
+    let cookies_from_browser = prefs
+        .get("cookiesFromBrowser")
+        .and_then(|v| v.as_str())
+        .filter(|s| !s.is_empty())
+        .map(|s| s.to_string());
+
+    (cookies_file_path, cookies_from_browser)
 }
 
 /// Parses yt-dlp stderr to extract a user-friendly error message

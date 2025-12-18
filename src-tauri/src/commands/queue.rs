@@ -4,12 +4,19 @@
 
 use tauri::{AppHandle, Emitter, Manager, State};
 use tauri_plugin_notification::NotificationExt;
+use tauri_plugin_store::StoreExt;
 use tokio::sync::mpsc;
 
+use crate::commands::history::{HistoryItem, DownloadStats};
 use crate::download::queue::{QueueEvent, QueueItem, QueueItemId, QueueItemStatus, SharedDownloadQueue};
 use crate::download::{spawn_ytdlp, stream_process_output, ProcessOutput, SpawnConfig};
 use crate::models::{DownloadConfig, DownloadError};
 use crate::utils::paths;
+
+const HISTORY_STORE_PATH: &str = "history.json";
+const HISTORY_KEY: &str = "downloads";
+const STATS_KEY: &str = "stats";
+const MAX_HISTORY_ITEMS: usize = 500;
 
 /// Event name for queue updates
 const EVENT_QUEUE_UPDATE: &str = "queue-update";
@@ -75,6 +82,34 @@ pub async fn queue_move_down(
     Ok(())
 }
 
+/// Reorders items in the queue
+#[tauri::command]
+pub async fn queue_reorder(
+    ids: Vec<QueueItemId>,
+    queue: State<'_, SharedDownloadQueue>,
+) -> Result<(), String> {
+    queue.reorder(ids).await;
+    Ok(())
+}
+
+/// Pauses all pending downloads
+#[tauri::command]
+pub async fn queue_pause_all(
+    queue: State<'_, SharedDownloadQueue>,
+) -> Result<(), String> {
+    queue.pause_all().await;
+    Ok(())
+}
+
+/// Resumes all paused downloads
+#[tauri::command]
+pub async fn queue_resume_all(
+    queue: State<'_, SharedDownloadQueue>,
+) -> Result<(), String> {
+    queue.resume_all().await;
+    Ok(())
+}
+
 /// Starts processing the queue
 pub async fn start_queue_processor(app: AppHandle, queue: SharedDownloadQueue) {
     let semaphore = queue.semaphore();
@@ -120,7 +155,8 @@ async fn process_queue_item(app: AppHandle, queue: SharedDownloadQueue, item: Qu
     let exec_paths = match paths::resolve_executable_paths(&app) {
         Ok(paths) => paths,
         Err(e) => {
-            queue.fail(id, e).await;
+            queue.fail(id, e.clone()).await;
+            add_to_history_internal(&app, &config, &item, None, "failed", Some(&e.to_string())).await;
             return;
         }
     };
@@ -134,7 +170,8 @@ async fn process_queue_item(app: AppHandle, queue: SharedDownloadQueue, item: Qu
     let child = match spawn_ytdlp(&config, &spawn_config).await {
         Ok(child) => child,
         Err(e) => {
-            queue.fail(id, e).await;
+            queue.fail(id, e.clone()).await;
+            add_to_history_internal(&app, &config, &item, None, "failed", Some(&e.to_string())).await;
             return;
         }
     };
@@ -171,7 +208,9 @@ async fn process_queue_item(app: AppHandle, queue: SharedDownloadQueue, item: Qu
                 detected_file_path = Some(path);
             }
             ProcessOutput::Error(error) => {
+                let error_str = error.to_string();
                 queue.fail(id, error).await;
+                add_to_history_internal(&app, &config, &item, None, "failed", Some(&error_str)).await;
                 send_notification(&app, "Download Failed", &config.url, false);
                 return;
             }
@@ -181,6 +220,9 @@ async fn process_queue_item(app: AppHandle, queue: SharedDownloadQueue, item: Qu
                     .unwrap_or_else(|| find_latest_file_sync(&output_folder).unwrap_or_default());
 
                 queue.complete(id, file_path.clone()).await;
+                
+                // Add to history
+                add_to_history_internal(&app, &config, &item, Some(&file_path), "completed", None).await;
 
                 // Extract filename for notification
                 let title = std::path::Path::new(&file_path)
@@ -192,7 +234,9 @@ async fn process_queue_item(app: AppHandle, queue: SharedDownloadQueue, item: Qu
             }
             ProcessOutput::ExitError(code) => {
                 let error = DownloadError::DownloadFailed(format!("Process exited with code {}", code));
+                let error_str = error.to_string();
                 queue.fail(id, error).await;
+                add_to_history_internal(&app, &config, &item, None, "failed", Some(&error_str)).await;
                 send_notification(&app, "Download Failed", &config.url, false);
                 return;
             }
@@ -202,6 +246,95 @@ async fn process_queue_item(app: AppHandle, queue: SharedDownloadQueue, item: Qu
             }
         }
     }
+}
+
+/// Internal function to add download to history
+async fn add_to_history_internal(
+    app: &AppHandle,
+    config: &DownloadConfig,
+    item: &QueueItem,
+    file_path: Option<&str>,
+    status: &str,
+    error: Option<&str>,
+) {
+    let history_item = HistoryItem {
+        id: format!("{}-{}", chrono::Utc::now().timestamp_millis(), item.id),
+        url: config.url.clone(),
+        title: item.title.clone().unwrap_or_else(|| "Unknown".to_string()),
+        thumbnail: item.thumbnail.clone(),
+        format: format!("{:?}", config.format).to_lowercase().replace("\"", ""),
+        quality: format!("{:?}", config.quality).to_lowercase().replace("\"", ""),
+        file_path: file_path.map(|s| s.to_string()),
+        file_size: get_file_size(file_path),
+        duration: None,
+        downloaded_at: chrono::Utc::now().timestamp(),
+        status: status.to_string(),
+        error: error.map(|s| s.to_string()),
+    };
+
+    if let Err(e) = save_history_item(app, history_item).await {
+        tracing::error!("Failed to save to history: {}", e);
+    }
+}
+
+/// Gets file size if path exists
+fn get_file_size(path: Option<&str>) -> Option<u64> {
+    path.and_then(|p| std::fs::metadata(p).ok()).map(|m| m.len())
+}
+
+/// Saves a history item to the store
+async fn save_history_item(app: &AppHandle, item: HistoryItem) -> Result<(), String> {
+    let store = app
+        .store(HISTORY_STORE_PATH)
+        .map_err(|e| format!("Failed to open history store: {}", e))?;
+
+    // Get existing history
+    let mut history: Vec<HistoryItem> = match store.get(HISTORY_KEY) {
+        Some(value) => serde_json::from_value(value.clone()).unwrap_or_default(),
+        None => Vec::new(),
+    };
+
+    // Add new item at the beginning
+    history.insert(0, item.clone());
+
+    // Trim to max size
+    if history.len() > MAX_HISTORY_ITEMS {
+        history.truncate(MAX_HISTORY_ITEMS);
+    }
+
+    // Save history
+    let value = serde_json::to_value(&history)
+        .map_err(|e| format!("Failed to serialize history: {}", e))?;
+    store.set(HISTORY_KEY, value);
+
+    // Update stats
+    let mut stats: DownloadStats = match store.get(STATS_KEY) {
+        Some(value) => serde_json::from_value(value.clone()).unwrap_or_default(),
+        None => DownloadStats::default(),
+    };
+
+    stats.total_downloads += 1;
+    if item.status == "completed" {
+        stats.successful_downloads += 1;
+        if let Some(size) = item.file_size {
+            stats.total_bytes_downloaded += size;
+        }
+        if let Some(duration) = item.duration {
+            stats.total_duration_seconds += duration;
+        }
+    } else {
+        stats.failed_downloads += 1;
+    }
+
+    let stats_value = serde_json::to_value(&stats)
+        .map_err(|e| format!("Failed to serialize stats: {}", e))?;
+    store.set(STATS_KEY, stats_value);
+
+    store
+        .save()
+        .map_err(|e| format!("Failed to save history: {}", e))?;
+
+    Ok(())
 }
 
 /// Sends a notification

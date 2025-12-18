@@ -74,10 +74,13 @@ impl ArgumentBuilder {
     }
     
     /// Gets the filename template string for yt-dlp
+    /// 
+    /// Default template includes video ID to prevent filename collisions,
+    /// especially for Instagram where titles are often identical or empty.
     fn get_filename_template(&self) -> String {
         match &self.config.filename_template {
             Some(template) if !template.is_empty() => convert_template_to_ytdlp(template),
-            _ => "%(title)s.%(ext)s".to_string(), // Default template
+            _ => "%(title).100B [%(id)s].%(ext)s".to_string(), // Include ID to prevent collisions
         }
     }
 
@@ -176,8 +179,15 @@ impl ArgumentBuilder {
             args.push("all".to_string());
         }
 
-        // Cookies from browser if specified (Requirement 13.1)
-        if let Some(ref browser) = self.config.cookies_from_browser {
+        // Cookies: prefer custom file over browser cookies (Requirement 13.1)
+        // Custom cookies.txt file takes priority
+        if let Some(ref cookies_file) = self.config.cookies_file_path {
+            if !cookies_file.is_empty() {
+                args.push("--cookies".to_string());
+                args.push(cookies_file.clone());
+            }
+        } else if let Some(ref browser) = self.config.cookies_from_browser {
+            // Fall back to browser cookies if no custom file
             if !browser.is_empty() {
                 args.push("--cookies-from-browser".to_string());
                 args.push(browser.clone());

@@ -1,11 +1,77 @@
 /**
  * useMediaInfo hook - Manages media info fetching and playlist detection
+ * Includes LRU cache for media info to avoid redundant API calls
  */
 
 import { useState, useCallback, useEffect, useRef } from "react";
 import { invoke } from "@tauri-apps/api/core";
 import { validateUrl } from "@/lib/validation";
 import type { MediaInfo, PlaylistInfo } from "@/types";
+
+// LRU Cache for media info
+const CACHE_MAX_SIZE = 50;
+const CACHE_TTL_MS = 30 * 60 * 1000; // 30 minutes
+
+interface CacheEntry {
+  data: MediaInfo;
+  timestamp: number;
+}
+
+class MediaInfoCache {
+  private cache = new Map<string, CacheEntry>();
+
+  private normalizeUrl(url: string): string {
+    // Normalize YouTube URLs to consistent format
+    try {
+      const urlObj = new URL(url);
+      if (urlObj.hostname.includes("youtube.com") || urlObj.hostname.includes("youtu.be")) {
+        const videoId = urlObj.searchParams.get("v") || urlObj.pathname.split("/").pop();
+        if (videoId) return `youtube:${videoId}`;
+      }
+      return url.trim().toLowerCase();
+    } catch {
+      return url.trim().toLowerCase();
+    }
+  }
+
+  get(url: string): MediaInfo | null {
+    const key = this.normalizeUrl(url);
+    const entry = this.cache.get(key);
+
+    if (!entry) return null;
+
+    // Check if expired
+    if (Date.now() - entry.timestamp > CACHE_TTL_MS) {
+      this.cache.delete(key);
+      return null;
+    }
+
+    // Move to end (most recently used)
+    this.cache.delete(key);
+    this.cache.set(key, entry);
+
+    return entry.data;
+  }
+
+  set(url: string, data: MediaInfo): void {
+    const key = this.normalizeUrl(url);
+
+    // Remove oldest entries if at capacity
+    if (this.cache.size >= CACHE_MAX_SIZE) {
+      const firstKey = this.cache.keys().next().value;
+      if (firstKey) this.cache.delete(firstKey);
+    }
+
+    this.cache.set(key, { data, timestamp: Date.now() });
+  }
+
+  clear(): void {
+    this.cache.clear();
+  }
+}
+
+// Singleton cache instance
+const mediaInfoCache = new MediaInfoCache();
 
 interface UseMediaInfoReturn {
   mediaInfo: MediaInfo | null;
@@ -17,6 +83,7 @@ interface UseMediaInfoReturn {
   handleUrlChange: (newUrl: string, setUrl: (url: string) => void) => void;
   handlePaste: (setUrl: (url: string) => void) => Promise<void>;
   clearMediaInfo: () => void;
+  clearCache: () => void;
 }
 
 export function useMediaInfo(): UseMediaInfoReturn {
@@ -44,11 +111,20 @@ export function useMediaInfo(): UseMediaInfoReturn {
       return;
     }
 
+    // Check cache first
+    const cached = mediaInfoCache.get(urlToFetch);
+    if (cached) {
+      setMediaInfo(cached);
+      return;
+    }
+
     setIsLoadingMediaInfo(true);
 
     try {
       const info = await invoke<MediaInfo>("fetch_media_info", { url: urlToFetch });
       setMediaInfo(info);
+      // Store in cache
+      mediaInfoCache.set(urlToFetch, info);
     } catch (err) {
       console.error("Failed to fetch media info:", err);
       setMediaInfo(null);
@@ -133,6 +209,10 @@ export function useMediaInfo(): UseMediaInfoReturn {
     setPlaylistInfo(null);
   }, []);
 
+  const clearCache = useCallback(() => {
+    mediaInfoCache.clear();
+  }, []);
+
   return {
     mediaInfo,
     isLoadingMediaInfo,
@@ -143,5 +223,6 @@ export function useMediaInfo(): UseMediaInfoReturn {
     handleUrlChange,
     handlePaste,
     clearMediaInfo,
+    clearCache,
   };
 }

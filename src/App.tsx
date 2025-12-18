@@ -205,7 +205,7 @@ function App() {
   const handleAddToQueue = useCallback(async () => {
     const validation = validateUrl(url);
     if (!validation.isValid) return;
-    
+
     const config: DownloadConfig = {
       url: url.trim(),
       format,
@@ -213,8 +213,11 @@ function App() {
       outputFolder: outputFolder || "",
       embedSubtitles: preferences?.embedSubtitles ?? false,
       cookiesFromBrowser: preferences?.cookiesFromBrowser ?? null,
+      filenameTemplate: preferences?.filenameTemplate ?? null,
+      proxyUrl: preferences?.proxyEnabled ? preferences?.proxyUrl : null,
+      cookiesFilePath: preferences?.cookiesFilePath ?? null,
     };
-    
+
     await addToQueue(config);
     saveRecentUrl(url.trim());
     success(t("toast.addedToQueue"));
@@ -223,21 +226,27 @@ function App() {
   }, [url, format, quality, outputFolder, preferences, addToQueue, clearMediaInfo, success, t]);
 
   // Handle multiple URLs pasted at once
-  const handleMultipleUrls = useCallback(async (urls: string[]) => {
-    for (const u of urls) {
-      const config: DownloadConfig = {
-        url: u.trim(),
-        format,
-        quality,
-        outputFolder: outputFolder || "",
-        embedSubtitles: preferences?.embedSubtitles ?? false,
-        cookiesFromBrowser: preferences?.cookiesFromBrowser ?? null,
-      };
-      await addToQueue(config);
-    }
-    info(t("toast.urlsAdded", { count: urls.length }));
-    openQueue();
-  }, [format, quality, outputFolder, preferences, addToQueue, info, t, openQueue]);
+  const handleMultipleUrls = useCallback(
+    async (urls: string[]) => {
+      for (const u of urls) {
+        const config: DownloadConfig = {
+          url: u.trim(),
+          format,
+          quality,
+          outputFolder: outputFolder || "",
+          embedSubtitles: preferences?.embedSubtitles ?? false,
+          cookiesFromBrowser: preferences?.cookiesFromBrowser ?? null,
+          filenameTemplate: preferences?.filenameTemplate ?? null,
+          proxyUrl: preferences?.proxyEnabled ? preferences?.proxyUrl : null,
+          cookiesFilePath: preferences?.cookiesFilePath ?? null,
+        };
+        await addToQueue(config);
+      }
+      info(t("toast.urlsAdded", { count: urls.length }));
+      openQueue();
+    },
+    [format, quality, outputFolder, preferences, addToQueue, info, t, openQueue]
+  );
 
   const handlePlaylistDownload = useCallback(async (entries: PlaylistEntry[], config: Omit<DownloadConfig, "url">) => {
     for (const entry of entries) {

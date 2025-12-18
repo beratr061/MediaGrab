@@ -4,8 +4,36 @@
 
 use serde::{Deserialize, Serialize};
 use std::process::Stdio;
+use tauri_plugin_store::StoreExt;
 
 use crate::utils::create_hidden_async_command;
+
+/// Gets cookies settings from preferences store
+fn get_cookies_from_preferences(app: &tauri::AppHandle) -> (Option<String>, Option<String>) {
+    let store = match app.store("preferences.json") {
+        Ok(s) => s,
+        Err(_) => return (None, None),
+    };
+
+    let prefs = match store.get("preferences") {
+        Some(v) => v,
+        None => return (None, None),
+    };
+
+    let cookies_file_path = prefs
+        .get("cookiesFilePath")
+        .and_then(|v| v.as_str())
+        .filter(|s| !s.is_empty())
+        .map(|s| s.to_string());
+
+    let cookies_from_browser = prefs
+        .get("cookiesFromBrowser")
+        .and_then(|v| v.as_str())
+        .filter(|s| !s.is_empty())
+        .map(|s| s.to_string());
+
+    (cookies_file_path, cookies_from_browser)
+}
 
 /// A single video entry in a playlist
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -49,7 +77,7 @@ pub struct PlaylistInfo {
 
 /// Check if a URL is a playlist
 #[tauri::command]
-pub async fn check_is_playlist(url: String) -> Result<bool, String> {
+pub async fn check_is_playlist(url: String, app: tauri::AppHandle) -> Result<bool, String> {
     if url.trim().is_empty() {
         return Ok(false);
     }
@@ -67,9 +95,30 @@ pub async fn check_is_playlist(url: String) -> Result<bool, String> {
         }
     }
 
+    // Get cookies settings from preferences
+    let (cookies_file_path, cookies_from_browser) = get_cookies_from_preferences(&app);
+
+    // Build command arguments
+    let mut args = vec!["--flat-playlist", "-J", "--no-download"];
+    
+    let cookies_file_arg: String;
+    let cookies_browser_arg: String;
+    
+    if let Some(ref file_path) = cookies_file_path {
+        cookies_file_arg = file_path.clone();
+        args.push("--cookies");
+        args.push(&cookies_file_arg);
+    } else if let Some(ref browser) = cookies_from_browser {
+        cookies_browser_arg = browser.clone();
+        args.push("--cookies-from-browser");
+        args.push(&cookies_browser_arg);
+    }
+    
+    args.push(&url);
+
     // For other sites, use yt-dlp to check
     let output = create_hidden_async_command("yt-dlp")
-        .args(["--flat-playlist", "-J", "--no-download", &url])
+        .args(&args)
         .stdout(Stdio::piped())
         .stderr(Stdio::piped())
         .output()
@@ -90,19 +139,35 @@ pub async fn check_is_playlist(url: String) -> Result<bool, String> {
 
 /// Fetch playlist information and video list
 #[tauri::command]
-pub async fn fetch_playlist_info(url: String) -> Result<PlaylistInfo, String> {
+pub async fn fetch_playlist_info(url: String, app: tauri::AppHandle) -> Result<PlaylistInfo, String> {
     if url.trim().is_empty() {
         return Err("URL cannot be empty".to_string());
     }
 
+    // Get cookies settings from preferences
+    let (cookies_file_path, cookies_from_browser) = get_cookies_from_preferences(&app);
+
+    // Build command arguments
+    let mut args = vec!["--flat-playlist", "-J", "--no-download"];
+    
+    let cookies_file_arg: String;
+    let cookies_browser_arg: String;
+    
+    if let Some(ref file_path) = cookies_file_path {
+        cookies_file_arg = file_path.clone();
+        args.push("--cookies");
+        args.push(&cookies_file_arg);
+    } else if let Some(ref browser) = cookies_from_browser {
+        cookies_browser_arg = browser.clone();
+        args.push("--cookies-from-browser");
+        args.push(&cookies_browser_arg);
+    }
+    
+    args.push(&url);
+
     // Use --flat-playlist to get playlist info without downloading video details
     let output = create_hidden_async_command("yt-dlp")
-        .args([
-            "--flat-playlist",
-            "-J",
-            "--no-download",
-            &url,
-        ])
+        .args(&args)
         .stdout(Stdio::piped())
         .stderr(Stdio::piped())
         .output()

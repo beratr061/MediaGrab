@@ -92,7 +92,8 @@
     "save": "Kaydet",
     "close": "Kapat",
     "copyDebugInfo": "Hata Bilgisini Kopyala",
-    "undo": "Geri Al"
+    "undo": "Geri Al",
+    "browse": "Gözat"
   },
   "status": {
     "idle": "İndirmeye hazır",
@@ -174,7 +175,13 @@
     "totalDuration": "Toplam Süre",
     "noResults": "Sonuç bulunamadı",
     "loadMore": "Daha fazla yükle ({{count}} kaldı)",
-    "itemDeleted": "Öğe silindi"
+    "itemDeleted": "Öğe silindi",
+    "today": "Bugün",
+    "yesterday": "Dün",
+    "clearHistory": "Geçmişi Temizle",
+    "play": "Oynat",
+    "openFolder": "Klasör",
+    "redownload": "Tekrar İndir"
   },
   "settings": {
     "title": "Ayarlar",
@@ -189,9 +196,14 @@
     "resetToDefaults": "Varsayılanlara Dön",
     "resetConfirm": "Tüm ayarları varsayılanlara döndürmek istediğinizden emin misiniz?",
     "language": "Dil",
-    "cookies": "Tarayıcı Çerezleri",
-    "cookiesDescription": "Özel veya yaş kısıtlamalı içeriklere erişmek için tarayıcınızdan çerez içe aktarın",
+    "cookies": "Çerezler",
+    "cookiesDescription": "Özel veya yaş kısıtlamalı içeriklere erişmek için çerez kullanın",
     "cookiesNone": "Hiçbiri",
+    "cookiesFile": "Çerez Dosyası (cookies.txt)",
+    "cookiesFilePlaceholder": "Çerez dosyası seçilmedi",
+    "cookiesFileDescription": "Netscape formatında cookies.txt dosyası. Tarayıcı çerezlerinden önceliklidir.",
+    "cookiesBrowser": "Tarayıcı Çerezleri (Yedek)",
+    "cookiesFileOverride": "Çerez dosyası seçildiğinde tarayıcı çerezleri kullanılmaz",
     "embedSubtitles": "Altyazıları Göm",
     "embedSubtitlesDescription": "Mevcut altyazıları indirilen videolara otomatik olarak göm",
     "proxy": "Proxy",

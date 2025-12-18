@@ -93,7 +93,8 @@
     "save": "Save",
     "close": "Close",
     "copyDebugInfo": "Copy Debug Info",
-    "undo": "Undo"
+    "undo": "Undo",
+    "browse": "Browse"
   },
   "status": {
     "idle": "Ready to download",
@@ -175,7 +176,13 @@
     "totalDuration": "Total Duration",
     "noResults": "No results found",
     "loadMore": "Load more ({{count}} remaining)",
-    "itemDeleted": "Item deleted"
+    "itemDeleted": "Item deleted",
+    "today": "Today",
+    "yesterday": "Yesterday",
+    "clearHistory": "Clear History",
+    "play": "Play",
+    "openFolder": "Folder",
+    "redownload": "Redownload"
   },
   "settings": {
     "title": "Settings",
@@ -190,8 +197,13 @@
     "resetToDefaults": "Reset to Defaults",
     "resetConfirm": "Are you sure you want to reset all settings to defaults?",
     "language": "Language",
-    "cookies": "Browser Cookies",
-    "cookiesDescription": "Import cookies from your browser to access private or age-restricted content",
+    "cookies": "Cookies",
+    "cookiesDescription": "Use cookies to access private or age-restricted content",
+    "cookiesFile": "Cookies File (cookies.txt)",
+    "cookiesFilePlaceholder": "No cookies file selected",
+    "cookiesFileDescription": "Netscape format cookies.txt file. Takes priority over browser cookies.",
+    "cookiesBrowser": "Browser Cookies (Fallback)",
+    "cookiesFileOverride": "Browser cookies are not used when a cookies file is selected",
     "cookiesNone": "None",
     "embedSubtitles": "Embed Subtitles",
     "embedSubtitlesDescription": "Automatically embed available subtitles into downloaded videos",

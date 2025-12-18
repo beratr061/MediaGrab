@@ -23,6 +23,22 @@ pub async fn pick_folder(app: tauri::AppHandle) -> Result<Option<String>, String
     }
 }
 
+/// Open native file picker dialog for cookies.txt file
+#[tauri::command]
+pub async fn pick_cookies_file(app: tauri::AppHandle) -> Result<Option<String>, String> {
+    let file = app
+        .dialog()
+        .file()
+        .set_title("Select Cookies File")
+        .add_filter("Cookies File", &["txt"])
+        .blocking_pick_file();
+    
+    match file {
+        Some(path) => Ok(Some(path.to_string())),
+        None => Ok(None), // User cancelled
+    }
+}
+
 /// Check if a folder is accessible (exists and writable)
 #[tauri::command]
 pub fn check_folder_accessible(path: String) -> Result<bool, String> {

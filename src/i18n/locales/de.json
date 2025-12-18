@@ -51,7 +51,8 @@
     "redownload": "Erneut laden",
     "save": "Speichern",
     "close": "Schließen",
-    "copyDebugInfo": "Debug-Info kopieren"
+    "copyDebugInfo": "Debug-Info kopieren",
+    "browse": "Durchsuchen"
   },
   "status": {
     "idle": "Bereit zum Herunterladen",
@@ -129,9 +130,14 @@
     "title": "Einstellungen",
     "general": "Allgemein",
     "language": "Sprache",
-    "cookies": "Browser-Cookies",
-    "cookiesDescription": "Importieren Sie Cookies aus Ihrem Browser, um auf private oder altersbeschränkte Inhalte zuzugreifen",
+    "cookies": "Cookies",
+    "cookiesDescription": "Verwenden Sie Cookies, um auf private oder altersbeschränkte Inhalte zuzugreifen",
     "cookiesNone": "Keine",
+    "cookiesFile": "Cookie-Datei (cookies.txt)",
+    "cookiesFilePlaceholder": "Keine Cookie-Datei ausgewählt",
+    "cookiesFileDescription": "Netscape-Format cookies.txt Datei. Hat Vorrang vor Browser-Cookies.",
+    "cookiesBrowser": "Browser-Cookies (Fallback)",
+    "cookiesFileOverride": "Browser-Cookies werden nicht verwendet, wenn eine Cookie-Datei ausgewählt ist",
     "embedSubtitles": "Untertitel einbetten",
     "embedSubtitlesDescription": "Verfügbare Untertitel automatisch in heruntergeladene Videos einbetten",
     "proxy": "Proxy",
