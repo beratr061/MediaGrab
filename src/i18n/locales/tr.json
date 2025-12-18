@@ -145,7 +145,30 @@
     "updateNow": "Şimdi Güncelle",
     "updating": "Güncelleniyor...",
     "upToDate": "Güncel",
-    "updateAvailable": "Güncelleme mevcut"
+    "updateAvailable": "Güncelleme mevcut",
+    "appUpdate": "Uygulama Güncelleme",
+    "checkAppUpdatesOnStartup": "Başlangıçta uygulama güncellemelerini kontrol et",
+    "updateTo": "Güncelle:",
+    "installing": "Yükleniyor...",
+    "theme": "Görünüm",
+    "themeMode": "Tema Modu",
+    "themeLight": "Açık",
+    "themeDark": "Koyu",
+    "themeSystem": "Sistem",
+    "accentColor": "Vurgu Rengi",
+    "colors": {
+      "blue": "Mavi",
+      "purple": "Mor",
+      "green": "Yeşil",
+      "orange": "Turuncu",
+      "pink": "Pembe",
+      "red": "Kırmızı",
+      "teal": "Turkuaz",
+      "yellow": "Sarı"
+    },
+    "filenameTemplate": "Dosya Adı Şablonu",
+    "filenameTemplateDescription": "Çıktı dosya adı formatını özelleştirin. Varsayılan için boş bırakın.",
+    "availablePlaceholders": "Kullanılabilir yer tutucular"
   },
   "update": {
     "available": "yt-dlp güncellemesi mevcut",

@@ -17,12 +17,12 @@ import { invoke } from '@tauri-apps/api/core';
 import type { QueueItem } from '@/types';
 import { cn } from '@/lib/utils';
 
-interface QueueItemCardProps {
+export interface QueueItemCardProps {
   item: QueueItem;
   onCancel: () => void;
   onRemove: () => void;
-  onMoveUp?: () => void;
-  onMoveDown?: () => void;
+  onMoveUp?: (() => void) | undefined;
+  onMoveDown?: (() => void) | undefined;
 }
 
 export function QueueItemCard({

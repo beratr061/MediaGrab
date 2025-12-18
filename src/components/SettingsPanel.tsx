@@ -1,12 +1,14 @@
 import { useState, useEffect, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { X, Settings, Cookie, Subtitles, Globe, ChevronDown, ChevronRight, Shield, Languages } from "lucide-react";
+import { X, Settings, Cookie, Subtitles, Globe, ChevronDown, ChevronRight, Shield, Languages, Download, RefreshCw, CheckCircle, Palette, Sun, Moon, Monitor, FileText } from "lucide-react";
 import { invoke } from "@tauri-apps/api/core";
+import { listen } from "@tauri-apps/api/event";
 import { useTranslation } from "react-i18next";
 import { Button } from "./ui/button";
 import { Select, type SelectOption } from "./ui/select";
 import { UpdateButton } from "./UpdateButton";
 import { CopyDebugInfoButton } from "./CopyDebugInfoButton";
+import { useTheme, ACCENT_COLORS, type AccentColor, type Theme } from "./ThemeProvider";
 import { buttonVariants, springTransition, fadeInVariants, defaultTransition } from "@/lib/animations";
 import { supportedLanguages, type SupportedLanguage } from "@/i18n";
 import type { Preferences } from "@/types";
@@ -47,6 +49,7 @@ export function SettingsPanel({
   onPreferencesChange 
 }: SettingsPanelProps) {
   const { t, i18n } = useTranslation();
+  const { theme, setTheme, accentColor, setAccentColor } = useTheme();
   const [ytdlpVersion, setYtdlpVersion] = useState<string | null>(null);
   const [checkUpdatesOnStartup, setCheckUpdatesOnStartup] = useState(
     preferences?.checkUpdatesOnStartup ?? true
@@ -65,6 +68,20 @@ export function SettingsPanel({
   );
   const [proxyUrl, setProxyUrl] = useState(
     preferences?.proxyUrl ?? ""
+  );
+  const [filenameTemplate, setFilenameTemplate] = useState(
+    preferences?.filenameTemplate ?? ""
+  );
+  
+  // App update state
+  const [appVersion, setAppVersion] = useState<string | null>(null);
+  const [checkingAppUpdate, setCheckingAppUpdate] = useState(false);
+  const [appUpdateAvailable, setAppUpdateAvailable] = useState(false);
+  const [newAppVersion, setNewAppVersion] = useState<string | null>(null);
+  const [installingAppUpdate, setInstallingAppUpdate] = useState(false);
+  const [appUpdateProgress, setAppUpdateProgress] = useState<{ downloaded: number; total: number | null } | null>(null);
+  const [checkAppUpdatesOnStartup, setCheckAppUpdatesOnStartup] = useState(
+    preferences?.checkAppUpdatesOnStartup ?? true
   );
 
   // Get current language
@@ -86,8 +103,29 @@ export function SettingsPanel({
       invoke<string>("get_ytdlp_version_cmd")
         .then(setYtdlpVersion)
         .catch(() => setYtdlpVersion(null));
+      
+      invoke<string>("get_app_version")
+        .then(setAppVersion)
+        .catch(() => setAppVersion(null));
     }
   }, [isOpen]);
+  
+  // Listen for app update events
+  useEffect(() => {
+    const unlistenAvailable = listen<{ currentVersion: string; newVersion: string }>("app-update-available", (event) => {
+      setAppUpdateAvailable(true);
+      setNewAppVersion(event.payload.newVersion);
+    });
+    
+    const unlistenProgress = listen<{ downloaded: number; total: number | null }>("app-update-progress", (event) => {
+      setAppUpdateProgress(event.payload);
+    });
+    
+    return () => {
+      unlistenAvailable.then(fn => fn());
+      unlistenProgress.then(fn => fn());
+    };
+  }, []);
 
   // Sync with preferences
   useEffect(() => {
@@ -97,6 +135,8 @@ export function SettingsPanel({
       setCookiesFromBrowser(preferences.cookiesFromBrowser ?? "");
       setProxyEnabled(preferences.proxyEnabled ?? false);
       setProxyUrl(preferences.proxyUrl ?? "");
+      setCheckAppUpdatesOnStartup(preferences.checkAppUpdatesOnStartup ?? true);
+      setFilenameTemplate(preferences.filenameTemplate ?? "");
     }
   }, [preferences]);
 
@@ -143,6 +183,53 @@ export function SettingsPanel({
     setProxyUrl(value);
     savePreference("proxyUrl", value || null);
   }, [savePreference]);
+
+  const handleFilenameTemplateChange = useCallback((value: string) => {
+    setFilenameTemplate(value);
+    savePreference("filenameTemplate", value || null);
+  }, [savePreference]);
+
+  const handleCheckAppUpdatesToggle = useCallback(() => {
+    const newValue = !checkAppUpdatesOnStartup;
+    setCheckAppUpdatesOnStartup(newValue);
+    savePreference("checkAppUpdatesOnStartup", newValue);
+  }, [checkAppUpdatesOnStartup, savePreference]);
+
+  const handleCheckAppUpdate = useCallback(async () => {
+    setCheckingAppUpdate(true);
+    try {
+      const result = await invoke<{
+        currentVersion: string;
+        updateAvailable: boolean;
+        newVersion: string | null;
+        error: string | null;
+      }>("check_app_update");
+      
+      if (result.updateAvailable && result.newVersion) {
+        setAppUpdateAvailable(true);
+        setNewAppVersion(result.newVersion);
+      } else {
+        setAppUpdateAvailable(false);
+        setNewAppVersion(null);
+      }
+    } catch (err) {
+      console.error("Failed to check for app updates:", err);
+    } finally {
+      setCheckingAppUpdate(false);
+    }
+  }, []);
+
+  const handleInstallAppUpdate = useCallback(async () => {
+    setInstallingAppUpdate(true);
+    setAppUpdateProgress(null);
+    try {
+      await invoke("install_app_update");
+      // App will restart after update
+    } catch (err) {
+      console.error("Failed to install app update:", err);
+      setInstallingAppUpdate(false);
+    }
+  }, []);
 
   return (
     <AnimatePresence>
@@ -205,13 +292,141 @@ export function SettingsPanel({
               </motion.section>
               
               <hr className="border-border" />
+              
+              {/* Theme Section */}
+              <motion.section
+                variants={fadeInVariants}
+                initial="initial"
+                animate="animate"
+                transition={{ ...defaultTransition, delay: 0.02 }}
+              >
+                <div className="flex items-center gap-2 mb-3">
+                  <Palette className="h-4 w-4" />
+                  <h3 className="text-sm font-medium">{t("settings.theme")}</h3>
+                </div>
+                
+                <div className="space-y-4">
+                  {/* Theme Mode */}
+                  <div className="space-y-2">
+                    <label className="text-sm text-muted-foreground">{t("settings.themeMode")}</label>
+                    <div className="flex gap-2">
+                      <ThemeModeButton
+                        mode="light"
+                        currentMode={theme}
+                        onClick={() => setTheme("light")}
+                        icon={<Sun className="h-4 w-4" />}
+                        label={t("settings.themeLight")}
+                      />
+                      <ThemeModeButton
+                        mode="dark"
+                        currentMode={theme}
+                        onClick={() => setTheme("dark")}
+                        icon={<Moon className="h-4 w-4" />}
+                        label={t("settings.themeDark")}
+                      />
+                      <ThemeModeButton
+                        mode="system"
+                        currentMode={theme}
+                        onClick={() => setTheme("system")}
+                        icon={<Monitor className="h-4 w-4" />}
+                        label={t("settings.themeSystem")}
+                      />
+                    </div>
+                  </div>
+                  
+                  {/* Accent Color */}
+                  <div className="space-y-2">
+                    <label className="text-sm text-muted-foreground">{t("settings.accentColor")}</label>
+                    <div className="flex flex-wrap gap-2">
+                      {ACCENT_COLORS.map((color) => (
+                        <AccentColorButton
+                          key={color.name}
+                          color={color.name}
+                          hsl={color.hsl}
+                          isSelected={accentColor === color.name}
+                          onClick={() => setAccentColor(color.name)}
+                          label={t(`settings.colors.${color.name}`)}
+                        />
+                      ))}
+                    </div>
+                  </div>
+                </div>
+              </motion.section>
+              
+              <hr className="border-border" />
 
-              {/* yt-dlp Update Section */}
+              {/* App Update Section */}
               <motion.section
                 variants={fadeInVariants}
                 initial="initial"
                 animate="animate"
                 transition={{ ...defaultTransition, delay: 0.05 }}
+              >
+                <div className="flex items-center gap-2 mb-3">
+                  <Download className="h-4 w-4" />
+                  <h3 className="text-sm font-medium">{t("settings.appUpdate")}</h3>
+                </div>
+                
+                <div className="space-y-4">
+                  <div className="flex items-center justify-between">
+                    <div className="text-sm text-muted-foreground">
+                      {t("settings.currentVersion")}: {appVersion || "..."}
+                    </div>
+                    
+                    {appUpdateAvailable ? (
+                      <Button
+                        size="sm"
+                        onClick={handleInstallAppUpdate}
+                        disabled={installingAppUpdate}
+                      >
+                        {installingAppUpdate ? (
+                          <>
+                            <RefreshCw className="h-4 w-4 mr-2 animate-spin" />
+                            {appUpdateProgress 
+                              ? `${Math.round((appUpdateProgress.downloaded / (appUpdateProgress.total || 1)) * 100)}%`
+                              : t("settings.installing")}
+                          </>
+                        ) : (
+                          <>
+                            <Download className="h-4 w-4 mr-2" />
+                            {t("settings.updateTo")} {newAppVersion}
+                          </>
+                        )}
+                      </Button>
+                    ) : (
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={handleCheckAppUpdate}
+                        disabled={checkingAppUpdate}
+                      >
+                        {checkingAppUpdate ? (
+                          <RefreshCw className="h-4 w-4 mr-2 animate-spin" />
+                        ) : (
+                          <CheckCircle className="h-4 w-4 mr-2" />
+                        )}
+                        {t("settings.checkForUpdates")}
+                      </Button>
+                    )}
+                  </div>
+                  
+                  <ToggleSwitch
+                    id="check-app-updates"
+                    label={t("settings.checkAppUpdatesOnStartup")}
+                    checked={checkAppUpdatesOnStartup}
+                    onChange={handleCheckAppUpdatesToggle}
+                  />
+                </div>
+              </motion.section>
+              
+              <hr className="border-border" />
+              
+              {/* yt-dlp Update Section */}
+              <motion.section
+                variants={fadeInVariants}
+                initial="initial"
+                animate="animate"
+                transition={{ ...defaultTransition, delay: 0.1 }}
               >
                 <h3 className="text-sm font-medium mb-3">{t("settings.ytdlpUpdate")}</h3>
                 
@@ -248,6 +463,47 @@ export function SettingsPanel({
                     checked={embedSubtitles}
                     onChange={handleEmbedSubtitlesToggle}
                   />
+                </div>
+              </motion.section>
+              
+              <hr className="border-border" />
+              
+              {/* Filename Template Section */}
+              <motion.section
+                variants={fadeInVariants}
+                initial="initial"
+                animate="animate"
+                transition={{ ...defaultTransition, delay: 0.12 }}
+              >
+                <div className="flex items-center gap-2 mb-3">
+                  <FileText className="h-4 w-4" />
+                  <h3 className="text-sm font-medium">{t("settings.filenameTemplate")}</h3>
+                </div>
+                
+                <div className="space-y-3">
+                  <p className="text-xs text-muted-foreground">
+                    {t("settings.filenameTemplateDescription")}
+                  </p>
+                  
+                  <input
+                    type="text"
+                    value={filenameTemplate}
+                    onChange={(e) => handleFilenameTemplateChange(e.target.value)}
+                    placeholder="{title}"
+                    className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ring"
+                  />
+                  
+                  <div className="text-xs text-muted-foreground space-y-1">
+                    <p className="font-medium">{t("settings.availablePlaceholders")}:</p>
+                    <div className="grid grid-cols-2 gap-1">
+                      <code className="bg-muted px-1 rounded">{"{title}"}</code>
+                      <code className="bg-muted px-1 rounded">{"{uploader}"}</code>
+                      <code className="bg-muted px-1 rounded">{"{channel}"}</code>
+                      <code className="bg-muted px-1 rounded">{"{date}"}</code>
+                      <code className="bg-muted px-1 rounded">{"{quality}"}</code>
+                      <code className="bg-muted px-1 rounded">{"{id}"}</code>
+                    </div>
+                  </div>
                 </div>
               </motion.section>
               
@@ -411,5 +667,62 @@ function ToggleSwitch({ id, label, checked, onChange }: ToggleSwitchProps) {
         />
       </button>
     </div>
+  );
+}
+
+// Theme Mode Button Component
+interface ThemeModeButtonProps {
+  mode: Theme;
+  currentMode: Theme;
+  onClick: () => void;
+  icon: React.ReactNode;
+  label: string;
+}
+
+function ThemeModeButton({ mode, currentMode, onClick, icon, label }: ThemeModeButtonProps) {
+  const isSelected = mode === currentMode;
+  return (
+    <button
+      onClick={onClick}
+      className={`
+        flex-1 flex flex-col items-center gap-1 p-2 rounded-lg border transition-all
+        ${isSelected 
+          ? 'border-primary bg-primary/10 text-primary' 
+          : 'border-border hover:border-muted-foreground/50 text-muted-foreground hover:text-foreground'}
+      `}
+      aria-pressed={isSelected}
+    >
+      {icon}
+      <span className="text-xs">{label}</span>
+    </button>
+  );
+}
+
+// Accent Color Button Component
+interface AccentColorButtonProps {
+  color: AccentColor;
+  hsl: string;
+  isSelected: boolean;
+  onClick: () => void;
+  label: string;
+}
+
+function AccentColorButton({ hsl, isSelected, onClick, label }: AccentColorButtonProps) {
+  return (
+    <button
+      onClick={onClick}
+      className={`
+        w-8 h-8 rounded-full transition-all relative
+        ${isSelected ? 'ring-2 ring-offset-2 ring-offset-background ring-foreground scale-110' : 'hover:scale-105'}
+      `}
+      style={{ backgroundColor: `hsl(${hsl})` }}
+      aria-label={label}
+      aria-pressed={isSelected}
+      title={label}
+    >
+      {isSelected && (
+        <CheckCircle className="h-4 w-4 text-white absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 drop-shadow-md" />
+      )}
+    </button>
   );
 }

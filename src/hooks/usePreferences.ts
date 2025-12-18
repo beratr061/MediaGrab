@@ -37,6 +37,10 @@ export function usePreferences() {
         embedSubtitles: false,
         cookiesFromBrowser: null,
         checkUpdatesOnStartup: true,
+        checkAppUpdatesOnStartup: true,
+        proxyEnabled: false,
+        proxyUrl: null,
+        filenameTemplate: null,
       });
     } finally {
       setLoading(false);

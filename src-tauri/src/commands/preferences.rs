@@ -22,17 +22,23 @@ pub struct Preferences {
     /// Browser to import cookies from (chrome, firefox, edge, etc.)
     pub cookies_from_browser: Option<String>,
     /// Whether to check for yt-dlp updates on startup
-    #[serde(default = "default_check_updates")]
+    #[serde(default = "default_true")]
     pub check_updates_on_startup: bool,
+    /// Whether to check for app updates on startup
+    #[serde(default = "default_true")]
+    pub check_app_updates_on_startup: bool,
     /// Whether proxy is enabled
     #[serde(default)]
     pub proxy_enabled: bool,
     /// Proxy URL (e.g., "http://127.0.0.1:8080" or "socks5://127.0.0.1:1080")
     #[serde(default)]
     pub proxy_url: Option<String>,
+    /// Custom filename template (e.g., "{title} - {uploader} [{quality}]")
+    #[serde(default)]
+    pub filename_template: Option<String>,
 }
 
-fn default_check_updates() -> bool {
+fn default_true() -> bool {
     true
 }
 
@@ -45,8 +51,10 @@ impl Default for Preferences {
             embed_subtitles: false,
             cookies_from_browser: None,
             check_updates_on_startup: true,
+            check_app_updates_on_startup: true,
             proxy_enabled: false,
             proxy_url: None,
+            filename_template: None,
         }
     }
 }
@@ -123,6 +131,7 @@ mod tests {
         assert!(!prefs.embed_subtitles);
         assert!(prefs.cookies_from_browser.is_none());
         assert!(prefs.check_updates_on_startup);
+        assert!(prefs.check_app_updates_on_startup);
     }
 
     #[test]
@@ -134,6 +143,10 @@ mod tests {
             embed_subtitles: true,
             cookies_from_browser: Some("chrome".to_string()),
             check_updates_on_startup: false,
+            check_app_updates_on_startup: true,
+            proxy_enabled: false,
+            proxy_url: None,
+            filename_template: Some("{title} - {uploader}".to_string()),
         };
         
         let json = serde_json::to_string(&prefs).unwrap();
@@ -157,5 +170,6 @@ mod tests {
         
         // Should default to true
         assert!(parsed.check_updates_on_startup);
+        assert!(parsed.check_app_updates_on_startup);
     }
 }

@@ -36,6 +36,9 @@ pub struct DownloadConfig {
     pub embed_subtitles: bool,
     /// Browser to import cookies from (chrome, firefox, edge, etc.)
     pub cookies_from_browser: Option<String>,
+    /// Custom filename template (e.g., "{title} - {uploader} [{quality}]")
+    #[serde(default)]
+    pub filename_template: Option<String>,
 }
 
 /// Result of a download operation

@@ -5,38 +5,48 @@
 
 use crate::models::DownloadConfig;
 
-/// Filename template options
-#[derive(Debug, Clone, PartialEq)]
-pub enum FilenameTemplate {
-    /// Just the title: "Video Title.ext"
-    TitleOnly,
-    /// Uploader and title: "Channel Name - Video Title.ext"
-    UploaderTitle,
-    /// Date and title: "20231215 - Video Title.ext"
-    DateTitle,
+/// Converts a user-friendly filename template to yt-dlp format
+/// 
+/// Supported placeholders:
+/// - {title} -> %(title)s
+/// - {uploader} -> %(uploader)s
+/// - {channel} -> %(channel)s
+/// - {date} -> %(upload_date)s
+/// - {quality} -> %(height)sp
+/// - {resolution} -> %(resolution)s
+/// - {duration} -> %(duration)s
+/// - {id} -> %(id)s
+/// - {playlist_index} -> %(playlist_index)s
+/// - {ext} -> %(ext)s (automatically added if not present)
+pub fn convert_template_to_ytdlp(template: &str) -> String {
+    let mut result = template.to_string();
+    
+    // Replace user-friendly placeholders with yt-dlp format
+    result = result.replace("{title}", "%(title)s");
+    result = result.replace("{uploader}", "%(uploader)s");
+    result = result.replace("{channel}", "%(channel)s");
+    result = result.replace("{date}", "%(upload_date)s");
+    result = result.replace("{quality}", "%(height)sp");
+    result = result.replace("{resolution}", "%(resolution)s");
+    result = result.replace("{duration}", "%(duration)s");
+    result = result.replace("{id}", "%(id)s");
+    result = result.replace("{playlist_index}", "%(playlist_index)s");
+    result = result.replace("{ext}", "%(ext)s");
+    
+    // Ensure extension is present
+    if !result.contains("%(ext)s") {
+        result.push_str(".%(ext)s");
+    }
+    
+    result
 }
 
-impl Default for FilenameTemplate {
-    fn default() -> Self {
-        FilenameTemplate::TitleOnly
-    }
-}
-
-impl FilenameTemplate {
-    /// Returns the yt-dlp output template string
-    pub fn to_template_string(&self) -> &'static str {
-        match self {
-            FilenameTemplate::TitleOnly => "%(title)s.%(ext)s",
-            FilenameTemplate::UploaderTitle => "%(uploader)s - %(title)s.%(ext)s",
-            FilenameTemplate::DateTitle => "%(upload_date)s - %(title)s.%(ext)s",
-        }
-    }
-}
+/// Default filename template
+pub const DEFAULT_FILENAME_TEMPLATE: &str = "{title}";
 
 /// Builds yt-dlp command-line arguments from download configuration
 pub struct ArgumentBuilder {
     config: DownloadConfig,
-    filename_template: FilenameTemplate,
     ffmpeg_location: Option<String>,
     proxy_url: Option<String>,
 }
@@ -46,16 +56,9 @@ impl ArgumentBuilder {
     pub fn new(config: DownloadConfig) -> Self {
         Self {
             config,
-            filename_template: FilenameTemplate::default(),
             ffmpeg_location: None,
             proxy_url: None,
         }
-    }
-
-    /// Sets the filename template
-    pub fn with_filename_template(mut self, template: FilenameTemplate) -> Self {
-        self.filename_template = template;
-        self
     }
 
     /// Sets the proxy URL
@@ -68,6 +71,14 @@ impl ArgumentBuilder {
     pub fn with_ffmpeg_location(mut self, path: String) -> Self {
         self.ffmpeg_location = Some(path);
         self
+    }
+    
+    /// Gets the filename template string for yt-dlp
+    fn get_filename_template(&self) -> String {
+        match &self.config.filename_template {
+            Some(template) if !template.is_empty() => convert_template_to_ytdlp(template),
+            _ => "%(title)s.%(ext)s".to_string(), // Default template
+        }
     }
 
     /// Builds the format selector string based on format and quality settings
@@ -111,7 +122,7 @@ impl ArgumentBuilder {
 
         // Output template (Requirement 6.5)
         args.push("-o".to_string());
-        args.push(self.filename_template.to_template_string().to_string());
+        args.push(self.get_filename_template());
 
         // Audio extraction and format conversion
         match self.config.format.as_str() {

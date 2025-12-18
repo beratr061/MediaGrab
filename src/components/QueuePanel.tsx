@@ -1,11 +1,6 @@
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   X,
-  Trash2,
-  ChevronUp,
-  ChevronDown,
-  Play,
-  Pause,
   CheckCircle,
   XCircle,
   Clock,
@@ -16,7 +11,6 @@ import {
 import { Button } from './ui/button';
 import { QueueItemCard } from './QueueItemCard';
 import { useQueue } from '@/hooks/useQueue';
-import { cn } from '@/lib/utils';
 
 interface QueuePanelProps {
   isOpen: boolean;

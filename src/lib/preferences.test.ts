@@ -25,6 +25,10 @@ const preferencesArbitrary = fc.record({
     { nil: null }
   ),
   checkUpdatesOnStartup: fc.boolean(),
+  checkAppUpdatesOnStartup: fc.boolean(),
+  proxyEnabled: fc.boolean(),
+  proxyUrl: fc.option(fc.string(), { nil: null }),
+  filenameTemplate: fc.option(fc.string(), { nil: null }),
 });
 
 describe('Preferences Round-Trip - Property Tests', () => {
@@ -77,6 +81,10 @@ describe('Preferences Round-Trip - Property Tests', () => {
             embedSubtitles: false,
             cookiesFromBrowser: null,
             checkUpdatesOnStartup: true,
+            checkAppUpdatesOnStartup: true,
+            proxyEnabled: false,
+            proxyUrl: null,
+            filenameTemplate: null,
           };
           
           const json = JSON.stringify(prefs);
@@ -101,6 +109,10 @@ describe('Preferences Round-Trip - Property Tests', () => {
             embedSubtitles: false,
             cookiesFromBrowser: null,
             checkUpdatesOnStartup: true,
+            checkAppUpdatesOnStartup: true,
+            proxyEnabled: false,
+            proxyUrl: null,
+            filenameTemplate: null,
           };
           
           const json = JSON.stringify(prefs);
@@ -125,6 +137,10 @@ describe('Preferences Round-Trip - Property Tests', () => {
             embedSubtitles: false,
             cookiesFromBrowser: null,
             checkUpdatesOnStartup: true,
+            checkAppUpdatesOnStartup: true,
+            proxyEnabled: false,
+            proxyUrl: null,
+            filenameTemplate: null,
           };
           
           const json = JSON.stringify(prefs);
@@ -145,6 +161,10 @@ describe('Preferences Round-Trip - Property Tests', () => {
       embedSubtitles: false,
       cookiesFromBrowser: null,
       checkUpdatesOnStartup: true,
+      checkAppUpdatesOnStartup: true,
+      proxyEnabled: false,
+      proxyUrl: null,
+      filenameTemplate: null,
     };
     
     const json = JSON.stringify(prefs);
@@ -164,6 +184,10 @@ describe('Preferences Round-Trip - Property Tests', () => {
         embedSubtitles: true,
         cookiesFromBrowser: browser,
         checkUpdatesOnStartup: false,
+        checkAppUpdatesOnStartup: true,
+        proxyEnabled: false,
+        proxyUrl: null,
+        filenameTemplate: null,
       };
       
       const json = JSON.stringify(prefs);

@@ -49,6 +49,7 @@ export interface DownloadConfig {
   outputFolder: string;
   embedSubtitles: boolean;
   cookiesFromBrowser: string | null; // 'chrome' | 'firefox' | 'edge' | null
+  filenameTemplate?: string | null; // Custom filename template
 }
 
 // Progress event from backend
@@ -77,9 +78,12 @@ export interface Preferences {
   embedSubtitles: boolean;
   cookiesFromBrowser: string | null;
   checkUpdatesOnStartup: boolean;
+  checkAppUpdatesOnStartup: boolean;
   // Proxy settings
   proxyEnabled: boolean;
   proxyUrl: string | null; // e.g., "http://127.0.0.1:8080" or "socks5://127.0.0.1:1080"
+  // Filename template
+  filenameTemplate: string | null; // e.g., "{title} - {uploader} [{quality}]"
 }
 
 // Disk space information from backend

@@ -145,7 +145,30 @@
     "updateNow": "Update Now",
     "updating": "Updating...",
     "upToDate": "Up to date",
-    "updateAvailable": "Update available"
+    "updateAvailable": "Update available",
+    "appUpdate": "App Update",
+    "checkAppUpdatesOnStartup": "Check for app updates on startup",
+    "updateTo": "Update to",
+    "installing": "Installing...",
+    "theme": "Appearance",
+    "themeMode": "Theme Mode",
+    "themeLight": "Light",
+    "themeDark": "Dark",
+    "themeSystem": "System",
+    "accentColor": "Accent Color",
+    "colors": {
+      "blue": "Blue",
+      "purple": "Purple",
+      "green": "Green",
+      "orange": "Orange",
+      "pink": "Pink",
+      "red": "Red",
+      "teal": "Teal",
+      "yellow": "Yellow"
+    },
+    "filenameTemplate": "Filename Template",
+    "filenameTemplateDescription": "Customize the output filename format. Leave empty for default.",
+    "availablePlaceholders": "Available placeholders"
   },
   "update": {
     "available": "yt-dlp update available",

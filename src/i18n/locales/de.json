@@ -145,7 +145,30 @@
     "updateNow": "Jetzt aktualisieren",
     "updating": "Wird aktualisiert...",
     "upToDate": "Aktuell",
-    "updateAvailable": "Update verfügbar"
+    "updateAvailable": "Update verfügbar",
+    "appUpdate": "App-Update",
+    "checkAppUpdatesOnStartup": "Beim Start nach App-Updates suchen",
+    "updateTo": "Aktualisieren auf",
+    "installing": "Wird installiert...",
+    "theme": "Erscheinungsbild",
+    "themeMode": "Themenmodus",
+    "themeLight": "Hell",
+    "themeDark": "Dunkel",
+    "themeSystem": "System",
+    "accentColor": "Akzentfarbe",
+    "colors": {
+      "blue": "Blau",
+      "purple": "Lila",
+      "green": "Grün",
+      "orange": "Orange",
+      "pink": "Rosa",
+      "red": "Rot",
+      "teal": "Türkis",
+      "yellow": "Gelb"
+    },
+    "filenameTemplate": "Dateiname-Vorlage",
+    "filenameTemplateDescription": "Passen Sie das Ausgabedateiformat an. Leer lassen für Standard.",
+    "availablePlaceholders": "Verfügbare Platzhalter"
   },
   "update": {
     "available": "yt-dlp Update verfügbar",

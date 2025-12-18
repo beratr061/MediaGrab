@@ -1,11 +1,13 @@
-//! yt-dlp update commands
+//! yt-dlp and app update commands
 //!
-//! Implements the Tauri commands for updating yt-dlp.
+//! Implements the Tauri commands for updating yt-dlp and the application itself.
 //!
-//! **Validates: Requirements 7.6, 7.7, 7.8**
+//! **Validates: Requirements 7.6, 7.7, 7.8, 11.1**
 
 use serde::{Deserialize, Serialize};
 use std::process::Stdio;
+use tauri::{AppHandle, Emitter};
+use tauri_plugin_updater::UpdaterExt;
 use tokio::io::{AsyncBufReadExt, BufReader};
 
 use crate::utils::create_hidden_async_command;
@@ -36,6 +38,38 @@ pub struct UpdateCheckResult {
     pub latest_version: Option<String>,
     /// Error message if check failed
     pub error: Option<String>,
+}
+
+/// Result of checking for app updates
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct AppUpdateCheckResult {
+    /// Current app version
+    pub current_version: String,
+    /// Whether an update is available
+    pub update_available: bool,
+    /// New version available (if any)
+    pub new_version: Option<String>,
+    /// Error message if check failed
+    pub error: Option<String>,
+}
+
+/// Result of app update operation
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct AppUpdateResult {
+    /// Whether the update was successful
+    pub success: bool,
+    /// Message describing the result
+    pub message: String,
+}
+
+/// Progress event for app update download
+#[derive(Clone, Serialize)]
+#[serde(rename_all = "camelCase")]
+struct AppUpdateProgressEvent {
+    downloaded: u64,
+    total: Option<u64>,
 }
 
 /// Gets the current yt-dlp version
@@ -217,6 +251,101 @@ pub async fn check_ytdlp_update() -> Result<UpdateCheckResult, String> {
 #[tauri::command]
 pub async fn get_ytdlp_version_cmd() -> Result<String, String> {
     get_ytdlp_version().await
+}
+
+/// Checks if an app update is available
+///
+/// **Validates: Requirements 11.1 - Auto-updater**
+#[tauri::command]
+pub async fn check_app_update(app: AppHandle) -> Result<AppUpdateCheckResult, String> {
+    let current_version = app.package_info().version.to_string();
+    
+    match app.updater() {
+        Ok(updater) => {
+            match updater.check().await {
+                Ok(Some(update)) => {
+                    Ok(AppUpdateCheckResult {
+                        current_version,
+                        update_available: true,
+                        new_version: Some(update.version),
+                        error: None,
+                    })
+                }
+                Ok(None) => {
+                    Ok(AppUpdateCheckResult {
+                        current_version,
+                        update_available: false,
+                        new_version: None,
+                        error: None,
+                    })
+                }
+                Err(e) => {
+                    Ok(AppUpdateCheckResult {
+                        current_version,
+                        update_available: false,
+                        new_version: None,
+                        error: Some(format!("Failed to check for updates: {}", e)),
+                    })
+                }
+            }
+        }
+        Err(e) => {
+            Ok(AppUpdateCheckResult {
+                current_version,
+                update_available: false,
+                new_version: None,
+                error: Some(format!("Updater not available: {}", e)),
+            })
+        }
+    }
+}
+
+/// Downloads and installs the app update
+///
+/// **Validates: Requirements 11.1 - Auto-updater**
+#[tauri::command]
+pub async fn install_app_update(app: AppHandle) -> Result<AppUpdateResult, String> {
+    let updater = app.updater()
+        .map_err(|e| format!("Updater not available: {}", e))?;
+    
+    let update = updater.check().await
+        .map_err(|e| format!("Failed to check for updates: {}", e))?
+        .ok_or_else(|| "No update available".to_string())?;
+    
+    let app_handle = app.clone();
+    
+    // Download with progress reporting
+    let bytes = update.download(
+        move |chunk_length, content_length| {
+            let _ = app_handle.emit("app-update-progress", AppUpdateProgressEvent {
+                downloaded: chunk_length as u64,
+                total: content_length.map(|l| l as u64),
+            });
+        },
+        || {
+            // Download finished callback
+        }
+    ).await.map_err(|e| format!("Failed to download update: {}", e))?;
+    
+    // Install the update (this will restart the app)
+    update.install(bytes)
+        .map_err(|e| format!("Failed to install update: {}", e))?;
+    
+    // Request app restart
+    app.restart();
+    
+    // This line is technically unreachable but needed for type checking
+    #[allow(unreachable_code)]
+    Ok(AppUpdateResult {
+        success: true,
+        message: "Update installed successfully. Restarting...".to_string(),
+    })
+}
+
+/// Gets the current app version
+#[tauri::command]
+pub fn get_app_version(app: AppHandle) -> String {
+    app.package_info().version.to_string()
 }
 
 /// Extracts version string from yt-dlp output

@@ -10,15 +10,15 @@ export interface SelectOption<T extends string = string> {
   icon?: ReactNode;
 }
 
-interface SelectProps<T extends string = string> {
-  id?: string;
+export interface SelectProps<T extends string = string> {
+  id?: string | undefined;
   value: T;
   onChange: (value: T) => void;
   options: SelectOption<T>[];
   placeholder?: string | undefined;
   disabled?: boolean | undefined;
   className?: string | undefined;
-  "aria-label"?: string;
+  "aria-label"?: string | undefined;
 }
 
 export function Select<T extends string = string>({
