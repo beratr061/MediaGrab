@@ -12,7 +12,7 @@ use crate::download::{
     spawn_ytdlp, stream_process_output, ProcessOutput,
     SharedDownloadManager, SpawnConfig,
 };
-use crate::models::{DownloadConfig, DownloadError, DownloadResult, DownloadState, ProgressEvent};
+use crate::models::{DownloadConfig, DownloadError, DownloadResult, DownloadState, ProgressEvent, RetryConfig};
 use crate::utils::paths;
 
 /// Event names for frontend communication
@@ -28,6 +28,18 @@ struct StateChangeEvent {
     state: DownloadState,
     file_path: Option<String>,
 }
+
+/// Retry event payload
+#[derive(Clone, serde::Serialize)]
+#[serde(rename_all = "camelCase")]
+struct RetryEvent {
+    attempt: u32,
+    max_retries: u32,
+    delay_ms: u64,
+    error: String,
+}
+
+const EVENT_RETRY: &str = "download-retry";
 
 /// Starts a download with the given configuration
 ///
@@ -67,7 +79,10 @@ pub async fn start_download(
         ffmpeg_location: Some(exec_paths.ffmpeg_dir.to_string_lossy().to_string()),
     };
     
-    let child = match spawn_ytdlp(&config, &spawn_config).await {
+    // Use retry configuration
+    let retry_config = RetryConfig::default();
+    
+    let child = match spawn_download_with_retry(&config, &spawn_config, &manager, &app, &retry_config).await {
         Ok(child) => child,
         Err(e) => {
             let result = manager.fail(e.clone()).await;
@@ -141,6 +156,8 @@ pub async fn start_download(
                     detected_file_path = Some(path);
                 }
                 ProcessOutput::Error(error) => {
+                    // Note: yt-dlp level retries are handled by --retries and --fragment-retries flags
+                    // This error means all internal retries failed
                     let _ = manager_for_events.fail(error.clone()).await;
                     emit_state_change(&app_for_events, DownloadState::Failed, None);
                     emit_error(&app_for_events, &error.to_string());
@@ -339,4 +356,63 @@ fn find_latest_file_sync(folder: &str) -> Option<String> {
     }
     
     latest.map(|(_, path)| path)
+}
+
+fn emit_retry(app: &AppHandle, event: &RetryEvent) {
+    let _ = app.emit(EVENT_RETRY, event);
+}
+
+/// Spawns the download process with retry support
+async fn spawn_download_with_retry(
+    config: &DownloadConfig,
+    spawn_config: &SpawnConfig,
+    manager: &SharedDownloadManager,
+    app: &AppHandle,
+    retry_config: &RetryConfig,
+) -> Result<tokio::process::Child, DownloadError> {
+    loop {
+        let attempt = manager.get_retry_attempt().await;
+        
+        match spawn_ytdlp(config, spawn_config).await {
+            Ok(child) => return Ok(child),
+            Err(e) => {
+                // Check if error is retryable and we have attempts left
+                if e.is_retryable() && attempt < retry_config.max_retries {
+                    let delay = retry_config.delay_for_attempt(attempt);
+                    
+                    tracing::warn!(
+                        "Download spawn failed (attempt {}/{}): {}. Retrying in {}ms...",
+                        attempt + 1,
+                        retry_config.max_retries,
+                        e,
+                        delay
+                    );
+                    
+                    // Emit retry event to frontend
+                    emit_retry(app, &RetryEvent {
+                        attempt: attempt + 1,
+                        max_retries: retry_config.max_retries,
+                        delay_ms: delay,
+                        error: e.to_string(),
+                    });
+                    
+                    // Increment retry counter
+                    manager.increment_retry(&e).await;
+                    
+                    // Wait before retrying
+                    tokio::time::sleep(tokio::time::Duration::from_millis(delay)).await;
+                    
+                    // Prepare for retry
+                    if manager.prepare_retry().await.is_err() {
+                        return Err(e);
+                    }
+                    
+                    emit_state_change(app, DownloadState::Starting, None);
+                    continue;
+                }
+                
+                return Err(e);
+            }
+        }
+    }
 }

@@ -1,0 +1,173 @@
+{
+  "app": {
+    "title": "MediaGrab",
+    "description": "Medya İndirici"
+  },
+  "header": {
+    "history": "İndirme Geçmişi",
+    "queue": "İndirme Kuyruğu",
+    "settings": "Ayarlar"
+  },
+  "form": {
+    "videoUrl": "Video URL",
+    "urlPlaceholder": "Video URL'sini buraya yapıştırın...",
+    "format": "Format",
+    "quality": "Kalite",
+    "saveTo": "Kaydet",
+    "selectFolder": "Klasör seçin...",
+    "defaultFolder": "Varsayılan İndirilenler klasörü"
+  },
+  "formats": {
+    "video-mp4": "MP4 Video",
+    "video-webm": "WebM Video",
+    "video-mkv": "MKV Video",
+    "audio-mp3": "MP3 Ses",
+    "audio-best": "En İyi Ses",
+    "audio-flac": "FLAC Ses",
+    "audio-wav": "WAV Ses",
+    "audio-aac": "AAC Ses",
+    "audio-opus": "Opus Ses"
+  },
+  "quality": {
+    "best": "En İyi Kalite",
+    "1080p": "1080p HD",
+    "720p": "720p HD"
+  },
+  "buttons": {
+    "download": "İndir",
+    "downloading": "İndiriliyor...",
+    "cancel": "İptal",
+    "cancelling": "İptal ediliyor...",
+    "addToQueue": "Kuyruğa Ekle",
+    "play": "Oynat",
+    "openFolder": "Klasörü Aç",
+    "retry": "Tekrar Dene",
+    "dismiss": "Kapat",
+    "update": "Güncelle",
+    "showVideos": "Videoları Göster",
+    "clear": "Temizle",
+    "clearAll": "Tümünü Temizle",
+    "remove": "Kaldır",
+    "redownload": "Tekrar İndir",
+    "save": "Kaydet",
+    "close": "Kapat",
+    "copyDebugInfo": "Hata Bilgisini Kopyala"
+  },
+  "status": {
+    "idle": "İndirmeye hazır",
+    "analyzing": "Video analiz ediliyor...",
+    "starting": "İndirme başlatılıyor...",
+    "downloading": "İndiriliyor...",
+    "merging": "Video ve ses birleştiriliyor...",
+    "completed": "İndirme tamamlandı!",
+    "cancelled": "İndirme iptal edildi",
+    "cancelling": "İptal ediliyor...",
+    "failed": "İndirme başarısız",
+    "retrying": "Yeniden deneniyor... ({{attempt}}/{{maxRetries}})"
+  },
+  "errors": {
+    "privateVideo": "Bu video özel veya giriş yapılması gerekiyor.",
+    "ageRestricted": "Bu video yaş kısıtlamalı.",
+    "regionLocked": "Bu video bölgenizde kullanılamıyor.",
+    "networkError": "Ağ hatası. Lütfen bağlantınızı kontrol edin.",
+    "notFound": "Video bulunamadı. Lütfen URL'yi kontrol edin.",
+    "folderNotAccessible": "Seçilen klasöre yazılamıyor. Lütfen farklı bir konum seçin.",
+    "folderValidationFailed": "Çıktı klasörü doğrulanamadı",
+    "diskSpaceWarning": "Uyarı: {{warning}}. İndirme başarısız olabilir.",
+    "folderPickerFailed": "Klasör seçici açılamadı"
+  },
+  "suggestions": {
+    "privateVideo": "Meşru erişiminiz olan içeriklere ulaşmak için tarayıcı çerez içe aktarmayı etkinleştirmeyi deneyin.",
+    "ageRestricted": "Yaşınızı doğrulamak için ayarlarda tarayıcı çerez içe aktarmayı etkinleştirin.",
+    "regionLocked": "Bu içerik konumunuza göre kısıtlanmış.",
+    "networkError": "İnternet bağlantınızı kontrol edip tekrar deneyin.",
+    "notFound": "Video kaldırılmış olabilir veya URL yanlış olabilir."
+  },
+  "retry": {
+    "title": "Otomatik yeniden deneme devam ediyor",
+    "info": "Deneme {{attempt}}/{{maxRetries}} • {{delay}}sn sonra tekrar denenecek"
+  },
+  "cookies": {
+    "title": "Bu içerik kimlik doğrulaması gerektirebilir.",
+    "description": "Meşru erişiminiz olan özel, yaş kısıtlamalı veya abonelik içeriklerine erişmek için tarayıcınızdan çerez içe aktarmayı etkinleştirmeyi deneyin.",
+    "openSettings": "Ayarları Aç →"
+  },
+  "playlist": {
+    "detected": "Oynatma Listesi Algılandı",
+    "loading": "Yükleniyor...",
+    "videoCount": "{{count}} video",
+    "selectAll": "Tümünü Seç",
+    "deselectAll": "Seçimi Kaldır",
+    "downloadSelected": "Seçilenleri İndir ({{count}})"
+  },
+  "mediaInfo": {
+    "duration": "Süre",
+    "uploader": "Yükleyen",
+    "size": "Boyut"
+  },
+  "queue": {
+    "title": "İndirme Kuyruğu",
+    "empty": "Kuyruk boş",
+    "emptyDescription": "İndirmek için kuyruğa video ekleyin",
+    "active": "Aktif",
+    "pending": "Bekleyen",
+    "completed": "Tamamlanan",
+    "failed": "Başarısız"
+  },
+  "history": {
+    "title": "İndirme Geçmişi",
+    "empty": "İndirme geçmişi yok",
+    "emptyDescription": "Tamamlanan indirmeleriniz burada görünecek",
+    "stats": "İstatistikler",
+    "totalDownloads": "Toplam İndirme",
+    "successful": "Başarılı",
+    "failedCount": "Başarısız",
+    "totalSize": "Toplam Boyut",
+    "totalDuration": "Toplam Süre"
+  },
+  "settings": {
+    "title": "Ayarlar",
+    "general": "Genel",
+    "language": "Dil",
+    "cookies": "Tarayıcı Çerezleri",
+    "cookiesDescription": "Özel veya yaş kısıtlamalı içeriklere erişmek için tarayıcınızdan çerez içe aktarın",
+    "cookiesNone": "Hiçbiri",
+    "embedSubtitles": "Altyazıları Göm",
+    "embedSubtitlesDescription": "Mevcut altyazıları indirilen videolara otomatik olarak göm",
+    "proxy": "Proxy",
+    "proxyEnabled": "Proxy Etkinleştir",
+    "proxyUrl": "Proxy URL",
+    "proxyPlaceholder": "http://127.0.0.1:8080",
+    "checkUpdates": "Başlangıçta yt-dlp güncellemelerini kontrol et",
+    "ytdlpUpdate": "yt-dlp Güncelleme",
+    "currentVersion": "Mevcut sürüm",
+    "checkForUpdates": "Güncellemeleri Kontrol Et",
+    "updateNow": "Şimdi Güncelle",
+    "updating": "Güncelleniyor...",
+    "upToDate": "Güncel",
+    "updateAvailable": "Güncelleme mevcut"
+  },
+  "update": {
+    "available": "yt-dlp güncellemesi mevcut",
+    "version": "({{version}})"
+  },
+  "shortcuts": {
+    "paste": "Yapıştır",
+    "download": "İndir",
+    "cancel": "İptal"
+  },
+  "missingExecutables": {
+    "title": "Gerekli Dosyalar Eksik",
+    "description": "Bazı gerekli çalıştırılabilir dosyalar eksik. Uygulama düzgün çalışmayabilir.",
+    "ytdlp": "yt-dlp",
+    "ffmpeg": "FFmpeg",
+    "ffprobe": "FFprobe",
+    "available": "Mevcut",
+    "missing": "Eksik"
+  },
+  "languages": {
+    "en": "English",
+    "tr": "Türkçe",
+    "de": "Deutsch"
+  }
+}

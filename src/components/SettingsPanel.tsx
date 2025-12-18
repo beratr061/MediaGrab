@@ -1,27 +1,37 @@
 import { useState, useEffect, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { X, Settings, Cookie, Subtitles, Globe, ChevronDown, ChevronRight, Shield } from "lucide-react";
+import { X, Settings, Cookie, Subtitles, Globe, ChevronDown, ChevronRight, Shield, Languages } from "lucide-react";
 import { invoke } from "@tauri-apps/api/core";
+import { useTranslation } from "react-i18next";
 import { Button } from "./ui/button";
 import { Select, type SelectOption } from "./ui/select";
 import { UpdateButton } from "./UpdateButton";
 import { CopyDebugInfoButton } from "./CopyDebugInfoButton";
 import { buttonVariants, springTransition, fadeInVariants, defaultTransition } from "@/lib/animations";
+import { supportedLanguages, type SupportedLanguage } from "@/i18n";
 import type { Preferences } from "@/types";
 
 /**
  * Supported browsers for cookie import
  */
-const SUPPORTED_BROWSERS: SelectOption[] = [
-  { value: "", label: "Devre dışı" },
-  { value: "chrome", label: "Google Chrome" },
-  { value: "firefox", label: "Mozilla Firefox" },
-  { value: "edge", label: "Microsoft Edge" },
-  { value: "brave", label: "Brave" },
-  { value: "opera", label: "Opera" },
-  { value: "vivaldi", label: "Vivaldi" },
-  { value: "chromium", label: "Chromium" },
+const BROWSER_OPTIONS: { value: string; labelKey: string; label: string }[] = [
+  { value: "", labelKey: "settings.cookiesNone", label: "None" },
+  { value: "chrome", labelKey: "", label: "Google Chrome" },
+  { value: "firefox", labelKey: "", label: "Mozilla Firefox" },
+  { value: "edge", labelKey: "", label: "Microsoft Edge" },
+  { value: "brave", labelKey: "", label: "Brave" },
+  { value: "opera", labelKey: "", label: "Opera" },
+  { value: "vivaldi", labelKey: "", label: "Vivaldi" },
+  { value: "chromium", labelKey: "", label: "Chromium" },
 ];
+
+/**
+ * Language options from supported languages
+ */
+const LANGUAGE_OPTIONS: SelectOption[] = supportedLanguages.map((lang) => ({
+  value: lang.code,
+  label: lang.nativeName,
+}));
 
 interface SettingsPanelProps {
   isOpen: boolean;
@@ -36,6 +46,7 @@ export function SettingsPanel({
   preferences,
   onPreferencesChange 
 }: SettingsPanelProps) {
+  const { t, i18n } = useTranslation();
   const [ytdlpVersion, setYtdlpVersion] = useState<string | null>(null);
   const [checkUpdatesOnStartup, setCheckUpdatesOnStartup] = useState(
     preferences?.checkUpdatesOnStartup ?? true
@@ -55,6 +66,19 @@ export function SettingsPanel({
   const [proxyUrl, setProxyUrl] = useState(
     preferences?.proxyUrl ?? ""
   );
+
+  // Get current language
+  const currentLanguage = (i18n.language?.split("-")[0] || "en") as SupportedLanguage;
+
+  // Browser options with translations
+  const browserOptions: SelectOption[] = BROWSER_OPTIONS.map((opt) => ({
+    value: opt.value,
+    label: opt.labelKey ? t(opt.labelKey) : opt.label,
+  }));
+
+  const handleLanguageChange = useCallback((value: string) => {
+    i18n.changeLanguage(value);
+  }, [i18n]);
 
   // Fetch yt-dlp version on mount
   useEffect(() => {
@@ -145,7 +169,7 @@ export function SettingsPanel({
             <div className="flex items-center justify-between p-4 border-b border-border sticky top-0 bg-background z-10">
               <div className="flex items-center gap-2">
                 <Settings className="h-5 w-5" />
-                <h2 className="text-lg font-semibold">Ayarlar</h2>
+                <h2 className="text-lg font-semibold">{t("settings.title")}</h2>
               </div>
               <motion.div
                 variants={buttonVariants}
@@ -161,21 +185,42 @@ export function SettingsPanel({
             
             {/* Content */}
             <div className="p-4 space-y-6">
-              {/* yt-dlp Update Section */}
+              {/* Language Section */}
               <motion.section
                 variants={fadeInVariants}
                 initial="initial"
                 animate="animate"
                 transition={defaultTransition}
               >
-                <h3 className="text-sm font-medium mb-3">yt-dlp Güncellemeleri</h3>
+                <div className="flex items-center gap-2 mb-3">
+                  <Languages className="h-4 w-4" />
+                  <h3 className="text-sm font-medium">{t("settings.language")}</h3>
+                </div>
+                
+                <Select
+                  value={currentLanguage}
+                  onChange={handleLanguageChange}
+                  options={LANGUAGE_OPTIONS}
+                />
+              </motion.section>
+              
+              <hr className="border-border" />
+
+              {/* yt-dlp Update Section */}
+              <motion.section
+                variants={fadeInVariants}
+                initial="initial"
+                animate="animate"
+                transition={{ ...defaultTransition, delay: 0.05 }}
+              >
+                <h3 className="text-sm font-medium mb-3">{t("settings.ytdlpUpdate")}</h3>
                 
                 <div className="space-y-4">
                   <UpdateButton currentVersion={ytdlpVersion || undefined} />
                   
                   <ToggleSwitch
                     id="check-updates"
-                    label="Başlangıçta güncelleme kontrolü"
+                    label={t("settings.checkUpdates")}
                     checked={checkUpdatesOnStartup}
                     onChange={handleCheckUpdatesToggle}
                   />
@@ -193,22 +238,16 @@ export function SettingsPanel({
               >
                 <div className="flex items-center gap-2 mb-3">
                   <Subtitles className="h-4 w-4" />
-                  <h3 className="text-sm font-medium">Altyazı Ayarları</h3>
+                  <h3 className="text-sm font-medium">{t("settings.embedSubtitles")}</h3>
                 </div>
                 
                 <div className="space-y-3">
                   <ToggleSwitch
                     id="embed-subtitles"
-                    label="Altyazıları videoya göm"
+                    label={t("settings.embedSubtitlesDescription")}
                     checked={embedSubtitles}
                     onChange={handleEmbedSubtitlesToggle}
                   />
-                  
-                  {embedSubtitles && (
-                    <p className="text-xs text-muted-foreground bg-muted/50 rounded p-2">
-                      ℹ️ Tüm mevcut altyazılar videoya gömülecektir.
-                    </p>
-                  )}
                 </div>
               </motion.section>
               
@@ -227,7 +266,7 @@ export function SettingsPanel({
                 >
                   <div className="flex items-center gap-2">
                     <Shield className="h-4 w-4" />
-                    <h3 className="text-sm font-medium">Gelişmiş Ayarlar</h3>
+                    <h3 className="text-sm font-medium">{t("settings.general")}</h3>
                   </div>
                   {showAdvanced ? (
                     <ChevronDown className="h-4 w-4 text-muted-foreground" />
@@ -250,31 +289,18 @@ export function SettingsPanel({
                         <div className="space-y-3">
                           <div className="flex items-center gap-2">
                             <Cookie className="h-4 w-4 text-muted-foreground" />
-                            <span className="text-sm font-medium">Çerez Kimlik Doğrulama</span>
+                            <span className="text-sm font-medium">{t("settings.cookies")}</span>
                           </div>
                           
                           <p className="text-xs text-muted-foreground">
-                            Özel, yaş kısıtlamalı veya abonelik içeriklerine erişmek için 
-                            tarayıcınızdan çerezleri içe aktarın.
+                            {t("settings.cookiesDescription")}
                           </p>
                           
-                          <div className="space-y-2">
-                            <label className="text-sm text-muted-foreground">
-                              Çerezleri içe aktar
-                            </label>
-                            <Select
-                              value={cookiesFromBrowser}
-                              onChange={handleCookieBrowserChange}
-                              options={SUPPORTED_BROWSERS}
-                              placeholder="Tarayıcı seçin..."
-                            />
-                          </div>
-                          
-                          {cookiesFromBrowser && (
-                            <p className="text-xs text-muted-foreground bg-amber-500/10 border border-amber-500/20 rounded p-2">
-                              ⚠️ İndirmeden önce seçili tarayıcının kapalı olduğundan emin olun.
-                            </p>
-                          )}
+                          <Select
+                            value={cookiesFromBrowser}
+                            onChange={handleCookieBrowserChange}
+                            options={browserOptions}
+                          />
                         </div>
                         
                         <hr className="border-border" />
@@ -283,16 +309,12 @@ export function SettingsPanel({
                         <div className="space-y-3">
                           <div className="flex items-center gap-2">
                             <Globe className="h-4 w-4 text-muted-foreground" />
-                            <span className="text-sm font-medium">Proxy Ayarları</span>
+                            <span className="text-sm font-medium">{t("settings.proxy")}</span>
                           </div>
-                          
-                          <p className="text-xs text-muted-foreground">
-                            Bölge kısıtlamalarını aşmak veya gizlilik için proxy kullanın.
-                          </p>
                           
                           <ToggleSwitch
                             id="proxy-enabled"
-                            label="Proxy kullan"
+                            label={t("settings.proxyEnabled")}
                             checked={proxyEnabled}
                             onChange={handleProxyToggle}
                           />
@@ -300,18 +322,15 @@ export function SettingsPanel({
                           {proxyEnabled && (
                             <div className="space-y-2">
                               <label className="text-sm text-muted-foreground">
-                                Proxy URL
+                                {t("settings.proxyUrl")}
                               </label>
                               <input
                                 type="text"
                                 value={proxyUrl}
                                 onChange={(e) => handleProxyUrlChange(e.target.value)}
-                                placeholder="http://127.0.0.1:8080 veya socks5://127.0.0.1:1080"
+                                placeholder={t("settings.proxyPlaceholder")}
                                 className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ring"
                               />
-                              <p className="text-xs text-muted-foreground">
-                                Desteklenen formatlar: http://, https://, socks4://, socks5://
-                              </p>
                             </div>
                           )}
                         </div>
@@ -330,11 +349,7 @@ export function SettingsPanel({
                 animate="animate"
                 transition={{ ...defaultTransition, delay: 0.2 }}
               >
-                <h3 className="text-sm font-medium mb-3">Sorun Giderme</h3>
                 <div className="space-y-3">
-                  <p className="text-xs text-muted-foreground">
-                    Sorun bildirirken paylaşmak için hata ayıklama bilgilerini kopyalayın.
-                  </p>
                   <CopyDebugInfoButton />
                 </div>
               </motion.section>
@@ -348,9 +363,8 @@ export function SettingsPanel({
                 animate="animate"
                 transition={{ ...defaultTransition, delay: 0.25 }}
               >
-                <h3 className="text-sm font-medium mb-3">Hakkında</h3>
                 <div className="text-xs text-muted-foreground space-y-1">
-                  <p>MediaGrab - Media Downloader</p>
+                  <p>{t("app.title")} - {t("app.description")}</p>
                   {ytdlpVersion && <p>yt-dlp: {ytdlpVersion}</p>}
                 </div>
               </motion.section>

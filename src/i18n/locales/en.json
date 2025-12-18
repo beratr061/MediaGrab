@@ -1,0 +1,173 @@
+{
+  "app": {
+    "title": "MediaGrab",
+    "description": "Media Downloader"
+  },
+  "header": {
+    "history": "Download History",
+    "queue": "Download Queue",
+    "settings": "Settings"
+  },
+  "form": {
+    "videoUrl": "Video URL",
+    "urlPlaceholder": "Paste video URL here...",
+    "format": "Format",
+    "quality": "Quality",
+    "saveTo": "Save to",
+    "selectFolder": "Select folder...",
+    "defaultFolder": "Default Downloads folder"
+  },
+  "formats": {
+    "video-mp4": "MP4 Video",
+    "video-webm": "WebM Video",
+    "video-mkv": "MKV Video",
+    "audio-mp3": "MP3 Audio",
+    "audio-best": "Best Audio",
+    "audio-flac": "FLAC Audio",
+    "audio-wav": "WAV Audio",
+    "audio-aac": "AAC Audio",
+    "audio-opus": "Opus Audio"
+  },
+  "quality": {
+    "best": "Best Quality",
+    "1080p": "1080p HD",
+    "720p": "720p HD"
+  },
+  "buttons": {
+    "download": "Download",
+    "downloading": "Downloading...",
+    "cancel": "Cancel",
+    "cancelling": "Cancelling...",
+    "addToQueue": "Add to Queue",
+    "play": "Play",
+    "openFolder": "Open Folder",
+    "retry": "Retry Download",
+    "dismiss": "Dismiss",
+    "update": "Update",
+    "showVideos": "Show Videos",
+    "clear": "Clear",
+    "clearAll": "Clear All",
+    "remove": "Remove",
+    "redownload": "Redownload",
+    "save": "Save",
+    "close": "Close",
+    "copyDebugInfo": "Copy Debug Info"
+  },
+  "status": {
+    "idle": "Ready to download",
+    "analyzing": "Analyzing video...",
+    "starting": "Starting download...",
+    "downloading": "Downloading...",
+    "merging": "Merging video and audio...",
+    "completed": "Download complete!",
+    "cancelled": "Download cancelled",
+    "cancelling": "Cancelling...",
+    "failed": "Download failed",
+    "retrying": "Retrying... ({{attempt}}/{{maxRetries}})"
+  },
+  "errors": {
+    "privateVideo": "This video is private or requires sign-in.",
+    "ageRestricted": "This video is age-restricted.",
+    "regionLocked": "This video is not available in your region.",
+    "networkError": "Network error. Please check your connection.",
+    "notFound": "Video not found. Please check the URL.",
+    "folderNotAccessible": "Cannot write to selected folder. Please choose a different location.",
+    "folderValidationFailed": "Failed to validate output folder",
+    "diskSpaceWarning": "Warning: {{warning}}. Download may fail.",
+    "folderPickerFailed": "Failed to open folder picker"
+  },
+  "suggestions": {
+    "privateVideo": "Try enabling browser cookie import to access content you have legitimate access to.",
+    "ageRestricted": "Enable browser cookie import in settings to verify your age.",
+    "regionLocked": "This content is restricted based on your location.",
+    "networkError": "Check your internet connection and try again.",
+    "notFound": "The video may have been removed or the URL may be incorrect."
+  },
+  "retry": {
+    "title": "Automatic retry in progress",
+    "info": "Attempt {{attempt}} of {{maxRetries}} • Waiting {{delay}}s before retry"
+  },
+  "cookies": {
+    "title": "This content may require authentication.",
+    "description": "Try enabling cookie import from your browser to access private, age-restricted, or subscription content you have legitimate access to.",
+    "openSettings": "Open Settings →"
+  },
+  "playlist": {
+    "detected": "Playlist Detected",
+    "loading": "Loading...",
+    "videoCount": "{{count}} videos",
+    "selectAll": "Select All",
+    "deselectAll": "Deselect All",
+    "downloadSelected": "Download Selected ({{count}})"
+  },
+  "mediaInfo": {
+    "duration": "Duration",
+    "uploader": "Uploader",
+    "size": "Size"
+  },
+  "queue": {
+    "title": "Download Queue",
+    "empty": "Queue is empty",
+    "emptyDescription": "Add videos to the queue to download them",
+    "active": "Active",
+    "pending": "Pending",
+    "completed": "Completed",
+    "failed": "Failed"
+  },
+  "history": {
+    "title": "Download History",
+    "empty": "No download history",
+    "emptyDescription": "Your completed downloads will appear here",
+    "stats": "Statistics",
+    "totalDownloads": "Total Downloads",
+    "successful": "Successful",
+    "failedCount": "Failed",
+    "totalSize": "Total Size",
+    "totalDuration": "Total Duration"
+  },
+  "settings": {
+    "title": "Settings",
+    "general": "General",
+    "language": "Language",
+    "cookies": "Browser Cookies",
+    "cookiesDescription": "Import cookies from your browser to access private or age-restricted content",
+    "cookiesNone": "None",
+    "embedSubtitles": "Embed Subtitles",
+    "embedSubtitlesDescription": "Automatically embed available subtitles into downloaded videos",
+    "proxy": "Proxy",
+    "proxyEnabled": "Enable Proxy",
+    "proxyUrl": "Proxy URL",
+    "proxyPlaceholder": "http://127.0.0.1:8080",
+    "checkUpdates": "Check for yt-dlp updates on startup",
+    "ytdlpUpdate": "yt-dlp Update",
+    "currentVersion": "Current version",
+    "checkForUpdates": "Check for Updates",
+    "updateNow": "Update Now",
+    "updating": "Updating...",
+    "upToDate": "Up to date",
+    "updateAvailable": "Update available"
+  },
+  "update": {
+    "available": "yt-dlp update available",
+    "version": "({{version}})"
+  },
+  "shortcuts": {
+    "paste": "Paste",
+    "download": "Download",
+    "cancel": "Cancel"
+  },
+  "missingExecutables": {
+    "title": "Missing Required Files",
+    "description": "Some required executable files are missing. The application may not work correctly.",
+    "ytdlp": "yt-dlp",
+    "ffmpeg": "FFmpeg",
+    "ffprobe": "FFprobe",
+    "available": "Available",
+    "missing": "Missing"
+  },
+  "languages": {
+    "en": "English",
+    "tr": "Türkçe",
+    "de": "Deutsch"
+  }
+}

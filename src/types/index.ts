@@ -189,6 +189,14 @@ export type QueueEvent =
   | { type: 'itemRemoved'; id: number }
   | { type: 'queueCleared' };
 
+// Retry event from backend
+export interface RetryEvent {
+  attempt: number;
+  maxRetries: number;
+  delayMs: number;
+  error: string;
+}
+
 
 // ============================================
 // History System Types

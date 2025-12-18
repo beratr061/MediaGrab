@@ -1,0 +1,173 @@
+{
+  "app": {
+    "title": "MediaGrab",
+    "description": "Medien-Downloader"
+  },
+  "header": {
+    "history": "Download-Verlauf",
+    "queue": "Download-Warteschlange",
+    "settings": "Einstellungen"
+  },
+  "form": {
+    "videoUrl": "Video-URL",
+    "urlPlaceholder": "Video-URL hier einfügen...",
+    "format": "Format",
+    "quality": "Qualität",
+    "saveTo": "Speichern unter",
+    "selectFolder": "Ordner auswählen...",
+    "defaultFolder": "Standard-Downloads-Ordner"
+  },
+  "formats": {
+    "video-mp4": "MP4 Video",
+    "video-webm": "WebM Video",
+    "video-mkv": "MKV Video",
+    "audio-mp3": "MP3 Audio",
+    "audio-best": "Beste Audio",
+    "audio-flac": "FLAC Audio",
+    "audio-wav": "WAV Audio",
+    "audio-aac": "AAC Audio",
+    "audio-opus": "Opus Audio"
+  },
+  "quality": {
+    "best": "Beste Qualität",
+    "1080p": "1080p HD",
+    "720p": "720p HD"
+  },
+  "buttons": {
+    "download": "Herunterladen",
+    "downloading": "Wird heruntergeladen...",
+    "cancel": "Abbrechen",
+    "cancelling": "Wird abgebrochen...",
+    "addToQueue": "Zur Warteschlange",
+    "play": "Abspielen",
+    "openFolder": "Ordner öffnen",
+    "retry": "Erneut versuchen",
+    "dismiss": "Schließen",
+    "update": "Aktualisieren",
+    "showVideos": "Videos anzeigen",
+    "clear": "Löschen",
+    "clearAll": "Alle löschen",
+    "remove": "Entfernen",
+    "redownload": "Erneut laden",
+    "save": "Speichern",
+    "close": "Schließen",
+    "copyDebugInfo": "Debug-Info kopieren"
+  },
+  "status": {
+    "idle": "Bereit zum Herunterladen",
+    "analyzing": "Video wird analysiert...",
+    "starting": "Download wird gestartet...",
+    "downloading": "Wird heruntergeladen...",
+    "merging": "Video und Audio werden zusammengeführt...",
+    "completed": "Download abgeschlossen!",
+    "cancelled": "Download abgebrochen",
+    "cancelling": "Wird abgebrochen...",
+    "failed": "Download fehlgeschlagen",
+    "retrying": "Erneuter Versuch... ({{attempt}}/{{maxRetries}})"
+  },
+  "errors": {
+    "privateVideo": "Dieses Video ist privat oder erfordert eine Anmeldung.",
+    "ageRestricted": "Dieses Video ist altersbeschränkt.",
+    "regionLocked": "Dieses Video ist in Ihrer Region nicht verfügbar.",
+    "networkError": "Netzwerkfehler. Bitte überprüfen Sie Ihre Verbindung.",
+    "notFound": "Video nicht gefunden. Bitte überprüfen Sie die URL.",
+    "folderNotAccessible": "Kann nicht in den ausgewählten Ordner schreiben. Bitte wählen Sie einen anderen Speicherort.",
+    "folderValidationFailed": "Ausgabeordner konnte nicht validiert werden",
+    "diskSpaceWarning": "Warnung: {{warning}}. Download könnte fehlschlagen.",
+    "folderPickerFailed": "Ordnerauswahl konnte nicht geöffnet werden"
+  },
+  "suggestions": {
+    "privateVideo": "Versuchen Sie, den Browser-Cookie-Import zu aktivieren, um auf Inhalte zuzugreifen, auf die Sie legitimen Zugriff haben.",
+    "ageRestricted": "Aktivieren Sie den Browser-Cookie-Import in den Einstellungen, um Ihr Alter zu bestätigen.",
+    "regionLocked": "Dieser Inhalt ist basierend auf Ihrem Standort eingeschränkt.",
+    "networkError": "Überprüfen Sie Ihre Internetverbindung und versuchen Sie es erneut.",
+    "notFound": "Das Video wurde möglicherweise entfernt oder die URL ist falsch."
+  },
+  "retry": {
+    "title": "Automatischer Wiederholungsversuch läuft",
+    "info": "Versuch {{attempt}} von {{maxRetries}} • Warte {{delay}}s vor erneutem Versuch"
+  },
+  "cookies": {
+    "title": "Dieser Inhalt erfordert möglicherweise eine Authentifizierung.",
+    "description": "Versuchen Sie, den Cookie-Import aus Ihrem Browser zu aktivieren, um auf private, altersbeschränkte oder Abonnement-Inhalte zuzugreifen, auf die Sie legitimen Zugriff haben.",
+    "openSettings": "Einstellungen öffnen →"
+  },
+  "playlist": {
+    "detected": "Playlist erkannt",
+    "loading": "Wird geladen...",
+    "videoCount": "{{count}} Videos",
+    "selectAll": "Alle auswählen",
+    "deselectAll": "Auswahl aufheben",
+    "downloadSelected": "Ausgewählte herunterladen ({{count}})"
+  },
+  "mediaInfo": {
+    "duration": "Dauer",
+    "uploader": "Hochgeladen von",
+    "size": "Größe"
+  },
+  "queue": {
+    "title": "Download-Warteschlange",
+    "empty": "Warteschlange ist leer",
+    "emptyDescription": "Fügen Sie Videos zur Warteschlange hinzu, um sie herunterzuladen",
+    "active": "Aktiv",
+    "pending": "Ausstehend",
+    "completed": "Abgeschlossen",
+    "failed": "Fehlgeschlagen"
+  },
+  "history": {
+    "title": "Download-Verlauf",
+    "empty": "Kein Download-Verlauf",
+    "emptyDescription": "Ihre abgeschlossenen Downloads werden hier angezeigt",
+    "stats": "Statistiken",
+    "totalDownloads": "Gesamte Downloads",
+    "successful": "Erfolgreich",
+    "failedCount": "Fehlgeschlagen",
+    "totalSize": "Gesamtgröße",
+    "totalDuration": "Gesamtdauer"
+  },
+  "settings": {
+    "title": "Einstellungen",
+    "general": "Allgemein",
+    "language": "Sprache",
+    "cookies": "Browser-Cookies",
+    "cookiesDescription": "Importieren Sie Cookies aus Ihrem Browser, um auf private oder altersbeschränkte Inhalte zuzugreifen",
+    "cookiesNone": "Keine",
+    "embedSubtitles": "Untertitel einbetten",
+    "embedSubtitlesDescription": "Verfügbare Untertitel automatisch in heruntergeladene Videos einbetten",
+    "proxy": "Proxy",
+    "proxyEnabled": "Proxy aktivieren",
+    "proxyUrl": "Proxy-URL",
+    "proxyPlaceholder": "http://127.0.0.1:8080",
+    "checkUpdates": "Beim Start nach yt-dlp-Updates suchen",
+    "ytdlpUpdate": "yt-dlp Update",
+    "currentVersion": "Aktuelle Version",
+    "checkForUpdates": "Nach Updates suchen",
+    "updateNow": "Jetzt aktualisieren",
+    "updating": "Wird aktualisiert...",
+    "upToDate": "Aktuell",
+    "updateAvailable": "Update verfügbar"
+  },
+  "update": {
+    "available": "yt-dlp Update verfügbar",
+    "version": "({{version}})"
+  },
+  "shortcuts": {
+    "paste": "Einfügen",
+    "download": "Herunterladen",
+    "cancel": "Abbrechen"
+  },
+  "missingExecutables": {
+    "title": "Erforderliche Dateien fehlen",
+    "description": "Einige erforderliche ausführbare Dateien fehlen. Die Anwendung funktioniert möglicherweise nicht korrekt.",
+    "ytdlp": "yt-dlp",
+    "ffmpeg": "FFmpeg",
+    "ffprobe": "FFprobe",
+    "available": "Verfügbar",
+    "missing": "Fehlt"
+  },
+  "languages": {
+    "en": "English",
+    "tr": "Türkçe",
+    "de": "Deutsch"
+  }
+}

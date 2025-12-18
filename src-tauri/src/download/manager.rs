@@ -18,6 +18,10 @@ pub struct ActiveDownload {
     pub config: DownloadConfig,
     /// Path to the output file (set after download completes)
     pub output_path: Option<String>,
+    /// Current retry attempt (0 = first attempt)
+    pub retry_attempt: u32,
+    /// Last error that caused a retry
+    pub last_retry_error: Option<String>,
 }
 
 /// Download manager that enforces single download constraint and manages state
@@ -103,6 +107,8 @@ impl DownloadManager {
             *active = Some(ActiveDownload {
                 config,
                 output_path: None,
+                retry_attempt: 0,
+                last_retry_error: None,
             });
         }
         
@@ -269,6 +275,38 @@ impl DownloadManager {
     /// Gets the last error message
     pub async fn get_last_error(&self) -> Option<String> {
         self.last_error.read().await.clone()
+    }
+
+    /// Gets the current retry attempt number
+    pub async fn get_retry_attempt(&self) -> u32 {
+        let active = self.active_download.read().await;
+        active.as_ref().map(|d| d.retry_attempt).unwrap_or(0)
+    }
+
+    /// Increments the retry attempt counter and stores the error
+    pub async fn increment_retry(&self, error: &DownloadError) {
+        let mut active = self.active_download.write().await;
+        if let Some(ref mut download) = *active {
+            download.retry_attempt += 1;
+            download.last_retry_error = Some(error.to_string());
+        }
+    }
+
+    /// Prepares for a retry attempt by resetting state to Starting
+    pub async fn prepare_retry(&self) -> Result<(), DownloadError> {
+        // First transition to Idle, then to Starting
+        let _ = self.transition_to(DownloadState::Idle).await;
+        self.transition_to(DownloadState::Starting)
+            .await
+            .map_err(|_| DownloadError::GenericError("Cannot prepare for retry".to_string()))?;
+        
+        // Clear progress for fresh start
+        {
+            let mut progress = self.last_progress.write().await;
+            *progress = None;
+        }
+        
+        Ok(())
     }
 
     /// Transitions to downloading state (called when process starts successfully)

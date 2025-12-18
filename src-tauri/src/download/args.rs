@@ -226,6 +226,21 @@ impl ArgumentBuilder {
         // These are informational and don't affect download success
         args.push("--no-warnings".to_string());
 
+        // Resume support: continue partially downloaded files
+        // This is default behavior but we make it explicit
+        args.push("--continue".to_string());
+        
+        // Keep partial files on error/interrupt for resume capability
+        args.push("--keep-fragments".to_string());
+        
+        // Retry fragment downloads on network errors
+        args.push("--fragment-retries".to_string());
+        args.push("10".to_string());
+        
+        // Retry on HTTP errors (5xx, 429, etc.)
+        args.push("--retries".to_string());
+        args.push("10".to_string());
+
         args
     }
 

@@ -17,7 +17,7 @@ import {
 import { slideUpVariants, defaultTransition, buttonVariants, springTransition } from "@/lib/animations";
 import { cn } from "@/lib/utils";
 import { Button } from "./ui/button";
-import type { DownloadState } from "@/types";
+import type { DownloadState, RetryEvent } from "@/types";
 
 /**
  * Error category for UI display
@@ -52,6 +52,8 @@ interface StatusDisplayProps {
   onOpenSettings?: () => void;
   /** Callback to retry the download (for network errors) */
   onRetry?: () => void;
+  /** Current retry information (if retrying) */
+  retryInfo?: RetryEvent | null;
 }
 
 interface StatusConfig {
@@ -227,11 +229,17 @@ export function StatusDisplay({
   className,
   cookiesEnabled = false,
   onOpenSettings,
-  onRetry
+  onRetry,
+  retryInfo
 }: StatusDisplayProps) {
   const config = statusConfigs[state];
   const Icon = config.icon;
   const errorInfo = error ? categorizeError(error) : null;
+  
+  // Override message if retrying
+  const displayMessage = retryInfo 
+    ? `Retrying... (${retryInfo.attempt}/${retryInfo.maxRetries})`
+    : config.message;
   
   // Check if this is an auth error and cookies are not enabled
   const showCookieSuggestion = 
@@ -258,10 +266,35 @@ export function StatusDisplay({
         transition={defaultTransition}
         className={cn("flex flex-col gap-2", className)}
       >
-        <div className={cn("flex items-center gap-2", config.color)}>
-          <Icon className={cn("h-5 w-5", config.animate && "animate-spin")} />
-          <span className="font-medium">{config.message}</span>
+        <div className={cn("flex items-center gap-2", retryInfo ? "text-warning" : config.color)}>
+          <Icon className={cn("h-5 w-5", (config.animate || retryInfo) && "animate-spin")} />
+          <span className="font-medium">{displayMessage}</span>
         </div>
+        
+        {/* Retry info banner */}
+        {retryInfo && (
+          <motion.div
+            variants={slideUpVariants}
+            initial="initial"
+            animate="animate"
+            className="mt-2 p-3 rounded-lg bg-warning/10 border border-warning/20"
+          >
+            <div className="flex items-start gap-3">
+              <RefreshCw className="h-5 w-5 text-warning mt-0.5 shrink-0 animate-spin" />
+              <div className="flex-1 space-y-1">
+                <p className="text-sm text-foreground font-medium">
+                  Automatic retry in progress
+                </p>
+                <p className="text-xs text-muted-foreground">
+                  Attempt {retryInfo.attempt} of {retryInfo.maxRetries} • Waiting {Math.round(retryInfo.delayMs / 1000)}s before retry
+                </p>
+                <p className="text-xs text-muted-foreground font-mono">
+                  {retryInfo.error}
+                </p>
+              </div>
+            </div>
+          </motion.div>
+        )}
         
         {/* Error details with categorized icon */}
         {/* **Validates: Requirements 6.2, 6.3** */}

@@ -1,6 +1,6 @@
 //! Error types for download operations
 
-use serde::Serialize;
+use serde::{Deserialize, Serialize};
 use thiserror::Error;
 
 /// Categorized download errors
@@ -65,6 +65,42 @@ impl DownloadError {
     
     /// Check if this error type supports retry
     pub fn is_retryable(&self) -> bool {
-        matches!(self, DownloadError::NetworkError(_))
+        matches!(
+            self,
+            DownloadError::NetworkError(_) | DownloadError::DownloadFailed(_)
+        )
+    }
+}
+
+/// Retry configuration for failed downloads
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct RetryConfig {
+    /// Maximum number of retry attempts
+    pub max_retries: u32,
+    /// Initial delay between retries in milliseconds
+    pub initial_delay_ms: u64,
+    /// Maximum delay between retries in milliseconds
+    pub max_delay_ms: u64,
+    /// Backoff multiplier (delay = initial_delay * multiplier^attempt)
+    pub backoff_multiplier: f64,
+}
+
+impl Default for RetryConfig {
+    fn default() -> Self {
+        Self {
+            max_retries: 3,
+            initial_delay_ms: 1000,    // 1 second
+            max_delay_ms: 30000,       // 30 seconds
+            backoff_multiplier: 2.0,
+        }
+    }
+}
+
+impl RetryConfig {
+    /// Calculate delay for a given attempt number (0-indexed)
+    pub fn delay_for_attempt(&self, attempt: u32) -> u64 {
+        let delay = self.initial_delay_ms as f64 * self.backoff_multiplier.powi(attempt as i32);
+        (delay as u64).min(self.max_delay_ms)
     }
 }
