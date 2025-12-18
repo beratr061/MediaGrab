@@ -34,20 +34,33 @@
 
 ### 🎯 Temel Özellikler
 - **🎥 Video İndirme** - YouTube, Vimeo, Twitter ve 1000+ desteklenen siteden video indirin
-- **🎵 Ses Çıkarma** - Videolardan MP3, M4A, OPUS formatlarında ses çıkarın
-- **📊 Kalite Seçimi** - 144p'den 4K'ya kadar istediğiniz kaliteyi seçin
+- **🎵 Ses Çıkarma** - Videolardan MP3, AAC, OPUS, FLAC, WAV formatlarında ses çıkarın
+- **📊 Kalite Seçimi** - 720p, 1080p veya en iyi kaliteyi seçin
 - **📁 Özel Klasör** - İndirme konumunu dilediğiniz gibi ayarlayın
+- **📋 Playlist Desteği** - YouTube playlistlerini algılayın ve seçili videoları indirin
+- **📜 Altyazı Desteği** - Mevcut altyazıları görüntüleyin ve videolara gömün
 
 ### 🎨 Kullanıcı Deneyimi
-- **🌙 Karanlık/Aydınlık Tema** - Göz yorgunluğunu azaltan tema desteği
+- **🌙 Tema Özelleştirme** - Açık/Koyu/Sistem tema modu seçimi
+- **🎨 Accent Renkleri** - 8 farklı vurgu rengi (Mavi, Mor, Yeşil, Turuncu, Pembe, Kırmızı, Turkuaz, Sarı)
+- **🌍 Çoklu Dil** - Türkçe, İngilizce ve Almanca dil desteği
 - **📱 Modern Arayüz** - Tailwind CSS ile tasarlanmış şık ve responsive tasarım
 - **⚡ Gerçek Zamanlı İlerleme** - İndirme durumunu anlık takip edin
 - **🔔 Bildirimler** - İndirme tamamlandığında masaüstü bildirimi alın
+- **📝 Dosya Adı Şablonu** - `{title}`, `{uploader}`, `{quality}` gibi placeholder'larla özelleştirilebilir dosya adları
+
+### 📥 İndirme Özellikleri
+- **📚 İndirme Kuyruğu** - Birden fazla videoyu sıraya ekleyin ve otomatik indirin
+- **📖 İndirme Geçmişi** - Tamamlanan indirmelerin kaydını tutun ve istatistikleri görün
+- **🔄 Otomatik Yeniden Deneme** - Başarısız indirmeleri otomatik olarak tekrar deneyin
+- **⏸️ Devam Ettirme** - Kesilen indirmeleri kaldığı yerden devam ettirin
+- **🌐 Proxy Desteği** - HTTP/SOCKS proxy ile bölge kısıtlamalarını aşın
+- **🍪 Çerez Desteği** - Tarayıcı çerezleri ile özel/yaş kısıtlamalı içeriklere erişin
 
 ### 🛠️ Teknik Özellikler
 - **🚀 Yüksek Performans** - Rust backend ile hızlı ve verimli çalışma
 - **💾 Düşük Bellek Kullanımı** - Tauri sayesinde minimal kaynak tüketimi
-- **🔄 Otomatik Güncelleme** - yt-dlp'yi uygulama içinden güncelleyin
+- **🔄 Otomatik Güncelleme** - Uygulama ve yt-dlp'yi otomatik güncelleyin
 - **📋 Hata Ayıklama** - Detaylı log ve debug bilgisi kopyalama
 
 ---
@@ -96,9 +109,34 @@ choco install yt-dlp ffmpeg
 3. **Kalite Belirleyin** - İstediğiniz çözünürlüğü seçin
 4. **İndirin** - Tek tıkla indirmeyi başlatın
 
+### Desteklenen Formatlar
+
+| Video | Ses |
+|-------|-----|
+| MP4 | MP3 |
+| WebM | AAC |
+| MKV | OPUS |
+| | FLAC |
+| | WAV |
+
 ### Desteklenen Platformlar
 
 YouTube, Vimeo, Twitter/X, Instagram, TikTok, Facebook, Twitch, SoundCloud ve [1000+ site](https://github.com/yt-dlp/yt-dlp/blob/master/supportedsites.md)
+
+### Dosya Adı Şablonu
+
+Ayarlardan özel dosya adı formatı belirleyebilirsiniz:
+
+| Placeholder | Açıklama |
+|-------------|----------|
+| `{title}` | Video başlığı |
+| `{uploader}` | Yükleyen kişi/kanal |
+| `{channel}` | Kanal adı |
+| `{date}` | Yükleme tarihi |
+| `{quality}` | Video kalitesi (720p, 1080p vb.) |
+| `{id}` | Video ID |
+
+**Örnek:** `{title} - {uploader} [{quality}]` → `Video Adı - Kanal Adı [1080p].mp4`
 
 ---
 
