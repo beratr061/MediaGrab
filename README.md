@@ -164,16 +164,6 @@ Bu proje MIT lisansı altında lisanslanmıştır. Detaylar için [LICENSE](LICE
 
 ---
 
-## 🙏 Teşekkürler
-
-- [yt-dlp](https://github.com/yt-dlp/yt-dlp) - Güçlü medya indirme motoru
-- [FFmpeg](https://ffmpeg.org/) - Medya işleme araçları
-- [Tauri](https://tauri.app/) - Hafif ve güvenli masaüstü framework
-- [React](https://react.dev/) - Modern UI kütüphanesi
-- [Tailwind CSS](https://tailwindcss.com/) - Utility-first CSS framework
-
----
-
 <p align="center">
   Made with ❤️ by <a href="https://github.com/beratr061">beratr061</a>
 </p>
