@@ -9,20 +9,23 @@ const formatOptions: SelectOption<Format>[] = [
 ];
 
 interface FormatSelectorProps {
+  id?: string;
   value: Format;
   onChange: (value: Format) => void;
   disabled?: boolean;
   className?: string;
 }
 
-export function FormatSelector({ value, onChange, disabled, className }: FormatSelectorProps) {
+export function FormatSelector({ id, value, onChange, disabled, className }: FormatSelectorProps) {
   return (
     <Select
+      id={id}
       value={value}
       onChange={onChange}
       options={formatOptions}
       disabled={disabled}
       className={className}
+      aria-label="Select download format"
     />
   );
 }

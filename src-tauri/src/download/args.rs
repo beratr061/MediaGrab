@@ -159,6 +159,10 @@ impl ArgumentBuilder {
         args.push("--progress-template".to_string());
         args.push("download:%(progress._percent_str)s|%(progress._downloaded_bytes_str)s|%(progress._total_bytes_str)s|%(progress._speed_str)s|%(progress._eta_str)s".to_string());
 
+        // Print the final filename after download (for reliable file path detection)
+        args.push("--print".to_string());
+        args.push("after_move:filepath".to_string());
+
         // No playlist - download single video only
         args.push("--no-playlist".to_string());
 

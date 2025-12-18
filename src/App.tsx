@@ -61,6 +61,9 @@ function App() {
   // Track if preferences have been applied to form state
   const preferencesAppliedRef = useRef(false);
   
+  // Debounce timeout ref for URL change
+  const debounceTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  
   // Update notification state
   const [updateAvailable, setUpdateAvailable] = useState<{
     currentVersion: string;
@@ -279,21 +282,35 @@ function App() {
     }
   }, [downloadState]);
 
-  // Handle URL change with media info fetch
+  // Handle URL change with media info fetch (proper debounce with cleanup)
   const handleUrlChange = useCallback((newUrl: string) => {
     setUrl(newUrl);
     setMediaInfo(null);
     
+    // Clear any existing debounce timeout
+    if (debounceTimeoutRef.current) {
+      clearTimeout(debounceTimeoutRef.current);
+      debounceTimeoutRef.current = null;
+    }
+    
     // Debounce media info fetch
     const trimmedUrl = newUrl.trim();
     if (trimmedUrl && validateUrl(trimmedUrl).isValid) {
-      // Use a timeout to debounce rapid typing
-      // Note: For proper debouncing, consider using a ref to track the timeout
-      setTimeout(() => {
+      debounceTimeoutRef.current = setTimeout(() => {
         fetchMediaInfo(trimmedUrl);
+        debounceTimeoutRef.current = null;
       }, 500);
     }
   }, [fetchMediaInfo]);
+  
+  // Cleanup debounce timeout on unmount
+  useEffect(() => {
+    return () => {
+      if (debounceTimeoutRef.current) {
+        clearTimeout(debounceTimeoutRef.current);
+      }
+    };
+  }, []);
 
   const handlePaste = useCallback(async () => {
     try {
@@ -365,12 +382,14 @@ function App() {
       initial="initial"
       animate="animate"
       transition={defaultTransition}
+      role="main"
+      aria-label="MediaGrab - Media Downloader"
     >
       {/* Header */}
-      <header className="border-b border-border bg-card/50 backdrop-blur-sm">
+      <header className="border-b border-border bg-card/50 backdrop-blur-sm" role="banner">
         <div className="mx-auto flex max-w-3xl items-center justify-between px-6 py-4">
           <h1 className="text-xl font-semibold text-foreground">MediaGrab</h1>
-          <div className="flex items-center gap-2">
+          <nav className="flex items-center gap-2" aria-label="Application controls">
             <ThemeToggle />
             <motion.div
               variants={buttonVariants}
@@ -383,16 +402,22 @@ function App() {
                 variant="ghost" 
                 size="icon" 
                 title="Settings"
+                aria-label="Open settings"
+                aria-haspopup="dialog"
                 onClick={() => setIsSettingsOpen(true)}
               >
-                <Settings className="h-4 w-4" />
+                <Settings className="h-4 w-4" aria-hidden="true" />
               </Button>
               {/* Update available indicator */}
               {updateAvailable && (
-                <span className="absolute -top-1 -right-1 h-3 w-3 rounded-full bg-primary animate-pulse" />
+                <span 
+                  className="absolute -top-1 -right-1 h-3 w-3 rounded-full bg-primary animate-pulse" 
+                  aria-label="Update available"
+                  role="status"
+                />
               )}
             </motion.div>
-          </div>
+          </nav>
         </div>
       </header>
 
@@ -406,14 +431,19 @@ function App() {
         <div className="space-y-6">
           {/* URL Input */}
           <motion.div variants={itemVariants}>
-            <label className="mb-2 block text-sm font-medium text-foreground">
+            <label 
+              htmlFor="url-input"
+              className="mb-2 block text-sm font-medium text-foreground"
+            >
               Video URL
             </label>
             <UrlInput
+              id="url-input"
               value={url}
               onChange={handleUrlChange}
               onSubmit={handleDownload}
               disabled={isDownloading}
+              {...(error ? { "aria-describedby": "url-error" } : {})}
             />
           </motion.div>
 
@@ -428,22 +458,30 @@ function App() {
           )}
 
           {/* Format and Quality selectors */}
-          <motion.div variants={itemVariants} className="grid grid-cols-2 gap-4">
+          <motion.div variants={itemVariants} className="grid grid-cols-2 gap-4" role="group" aria-label="Download options">
             <div>
-              <label className="mb-2 block text-sm font-medium text-foreground">
+              <label 
+                htmlFor="format-selector"
+                className="mb-2 block text-sm font-medium text-foreground"
+              >
                 Format
               </label>
               <FormatSelector
+                id="format-selector"
                 value={format}
                 onChange={handleFormatChange}
                 disabled={isDownloading}
               />
             </div>
             <div>
-              <label className="mb-2 block text-sm font-medium text-foreground">
+              <label 
+                htmlFor="quality-selector"
+                className="mb-2 block text-sm font-medium text-foreground"
+              >
                 Quality
               </label>
               <QualitySelector
+                id="quality-selector"
                 value={quality}
                 onChange={handleQualityChange}
                 disabled={isDownloading}
@@ -453,10 +491,14 @@ function App() {
 
           {/* Folder picker */}
           <motion.div variants={itemVariants}>
-            <label className="mb-2 block text-sm font-medium text-foreground">
+            <label 
+              htmlFor="folder-picker"
+              className="mb-2 block text-sm font-medium text-foreground"
+            >
               Save to
             </label>
             <FolderPicker
+              id="folder-picker"
               value={outputFolder}
               onPick={handlePickFolder}
               disabled={isDownloading}
@@ -464,7 +506,7 @@ function App() {
           </motion.div>
 
           {/* Action buttons */}
-          <motion.div variants={itemVariants} className="flex items-center gap-3">
+          <motion.div variants={itemVariants} className="flex items-center gap-3" role="group" aria-label="Download actions">
             <DownloadButton
               onClick={handleDownload}
               state={downloadState}
@@ -576,11 +618,15 @@ function App() {
       )}
 
       {/* Footer with keyboard shortcuts hint */}
-      <footer className="fixed bottom-0 left-0 right-0 border-t border-border bg-card/50 backdrop-blur-sm">
+      <footer 
+        className="fixed bottom-0 left-0 right-0 border-t border-border bg-card/50 backdrop-blur-sm"
+        role="contentinfo"
+        aria-label="Keyboard shortcuts"
+      >
         <div className="mx-auto flex max-w-3xl items-center justify-center gap-6 px-6 py-2 text-xs text-muted-foreground">
-          <span><kbd className="rounded bg-muted px-1.5 py-0.5">Ctrl+V</kbd> Paste</span>
-          <span><kbd className="rounded bg-muted px-1.5 py-0.5">Enter</kbd> Download</span>
-          <span><kbd className="rounded bg-muted px-1.5 py-0.5">Esc</kbd> Cancel</span>
+          <span><kbd className="rounded bg-muted px-1.5 py-0.5" aria-label="Control plus V">Ctrl+V</kbd> Paste</span>
+          <span><kbd className="rounded bg-muted px-1.5 py-0.5" aria-label="Enter key">Enter</kbd> Download</span>
+          <span><kbd className="rounded bg-muted px-1.5 py-0.5" aria-label="Escape key">Esc</kbd> Cancel</span>
         </div>
       </footer>
 

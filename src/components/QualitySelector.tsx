@@ -9,20 +9,23 @@ const qualityOptions: SelectOption<Quality>[] = [
 ];
 
 interface QualitySelectorProps {
+  id?: string;
   value: Quality;
   onChange: (value: Quality) => void;
   disabled?: boolean;
   className?: string;
 }
 
-export function QualitySelector({ value, onChange, disabled, className }: QualitySelectorProps) {
+export function QualitySelector({ id, value, onChange, disabled, className }: QualitySelectorProps) {
   return (
     <Select
+      id={id}
       value={value}
       onChange={onChange}
       options={qualityOptions}
       disabled={disabled}
       className={className}
+      aria-label="Select video quality"
     />
   );
 }

@@ -11,24 +11,29 @@ export interface SelectOption<T extends string = string> {
 }
 
 interface SelectProps<T extends string = string> {
+  id?: string;
   value: T;
   onChange: (value: T) => void;
   options: SelectOption<T>[];
   placeholder?: string | undefined;
   disabled?: boolean | undefined;
   className?: string | undefined;
+  "aria-label"?: string;
 }
 
 export function Select<T extends string = string>({
+  id,
   value,
   onChange,
   options,
   placeholder = "Select...",
   disabled = false,
   className,
+  "aria-label": ariaLabel,
 }: SelectProps<T>) {
   const [isOpen, setIsOpen] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
+  const listboxId = id ? `${id}-listbox` : undefined;
 
   const selectedOption = options.find((opt) => opt.value === value);
 
@@ -51,9 +56,15 @@ export function Select<T extends string = string>({
   return (
     <div ref={containerRef} className={cn("relative", className)}>
       <button
+        id={id}
         type="button"
         onClick={() => !disabled && setIsOpen(!isOpen)}
         disabled={disabled}
+        role="combobox"
+        aria-expanded={isOpen}
+        aria-haspopup="listbox"
+        aria-controls={listboxId}
+        aria-label={ariaLabel}
         className={cn(
           "flex w-full items-center justify-between rounded-lg border border-input bg-background px-3 py-2.5 text-sm transition-colors",
           "hover:border-muted-foreground/50 focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2",
@@ -62,7 +73,7 @@ export function Select<T extends string = string>({
         )}
       >
         <span className="flex items-center gap-2">
-          {selectedOption?.icon}
+          {selectedOption?.icon && <span aria-hidden="true">{selectedOption.icon}</span>}
           {selectedOption?.label || placeholder}
         </span>
         <ChevronDown
@@ -70,12 +81,16 @@ export function Select<T extends string = string>({
             "h-4 w-4 text-muted-foreground transition-transform duration-200",
             isOpen && "rotate-180"
           )}
+          aria-hidden="true"
         />
       </button>
 
       <AnimatePresence>
         {isOpen && (
           <motion.div
+            id={listboxId}
+            role="listbox"
+            aria-label={ariaLabel}
             variants={fadeInVariants}
             initial="initial"
             animate="animate"
@@ -87,6 +102,8 @@ export function Select<T extends string = string>({
               <motion.button
                 key={option.value}
                 type="button"
+                role="option"
+                aria-selected={option.value === value}
                 onClick={() => handleSelect(option.value)}
                 initial={{ opacity: 0, y: -5 }}
                 animate={{ opacity: 1, y: 0 }}
@@ -99,7 +116,7 @@ export function Select<T extends string = string>({
                 )}
               >
                 <span className="flex items-center gap-2">
-                  {option.icon}
+                  {option.icon && <span aria-hidden="true">{option.icon}</span>}
                   {option.label}
                 </span>
                 {option.value === value && (
@@ -107,6 +124,7 @@ export function Select<T extends string = string>({
                     initial={{ scale: 0 }}
                     animate={{ scale: 1 }}
                     transition={{ type: "spring", stiffness: 500, damping: 30 }}
+                    aria-hidden="true"
                   >
                     <Check className="h-4 w-4" />
                   </motion.span>

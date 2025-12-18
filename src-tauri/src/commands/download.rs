@@ -102,6 +102,9 @@ pub async fn start_download(
     let app_for_events = app.clone();
     
     tokio::spawn(async move {
+        // Track the detected file path from --print after_move:filepath
+        let mut detected_file_path: Option<String> = None;
+        
         while let Some(output) = rx.recv().await {
             match output {
                 ProcessOutput::Progress(event) => {
@@ -132,6 +135,11 @@ pub async fn start_download(
                         emit_progress(&app_for_events, &merging_event);
                     }
                 }
+                ProcessOutput::FilePath(path) => {
+                    // Store the file path from --print after_move:filepath
+                    tracing::info!("Detected output file path: {}", path);
+                    detected_file_path = Some(path);
+                }
                 ProcessOutput::Error(error) => {
                     let _ = manager_for_events.fail(error.clone()).await;
                     emit_state_change(&app_for_events, DownloadState::Failed, None);
@@ -141,8 +149,15 @@ pub async fn start_download(
                     send_completion_notification(&app_for_events, "Download", false);
                 }
                 ProcessOutput::Completed(_) => {
-                    // Try to find the output file
-                    let file_path = find_latest_file(&output_folder).await;
+                    // Use the detected file path from --print, fallback to find_latest_file
+                    let file_path = detected_file_path.clone()
+                        .or_else(|| {
+                            // Fallback: try to find the latest file in output folder
+                            // This is a sync operation but should be fast
+                            tokio::task::block_in_place(|| {
+                                find_latest_file_sync(&output_folder)
+                            })
+                        });
                     
                     if let Ok(result) = manager_for_events.complete(file_path.clone().unwrap_or_default()).await {
                         emit_state_change(&app_for_events, DownloadState::Completed, file_path.clone());
@@ -288,8 +303,8 @@ fn send_completion_notification(app: &AppHandle, title: &str, success: bool) {
     }
 }
 
-/// Finds the most recently modified file in a directory
-async fn find_latest_file(folder: &str) -> Option<String> {
+/// Finds the most recently modified file in a directory (sync version for fallback)
+fn find_latest_file_sync(folder: &str) -> Option<String> {
     use std::fs;
     use std::path::Path;
     

@@ -6,14 +6,16 @@ import { cn } from "@/lib/utils";
 import { fadeInVariants, defaultTransition } from "@/lib/animations";
 
 interface UrlInputProps {
+  id?: string;
   value: string;
   onChange: (value: string) => void;
   onSubmit?: () => void;
   disabled?: boolean;
   className?: string;
+  "aria-describedby"?: string;
 }
 
-export function UrlInput({ value, onChange, onSubmit, disabled = false, className }: UrlInputProps) {
+export function UrlInput({ id, value, onChange, onSubmit, disabled = false, className, "aria-describedby": ariaDescribedBy }: UrlInputProps) {
   const [isDragOver, setIsDragOver] = useState(false);
   const [showPasteHint, setShowPasteHint] = useState(false);
   const [error, setError] = useState<string | undefined>();
@@ -128,7 +130,8 @@ export function UrlInput({ value, onChange, onSubmit, disabled = false, classNam
         </div>
         <input
           ref={inputRef}
-          type="text"
+          id={id}
+          type="url"
           value={value}
           onChange={handleChange}
           onFocus={handleFocus}
@@ -136,6 +139,10 @@ export function UrlInput({ value, onChange, onSubmit, disabled = false, classNam
           onKeyDown={handleKeyDown}
           disabled={disabled}
           placeholder="Paste a video URL here..."
+          aria-label="Video URL input"
+          aria-invalid={error && touched ? "true" : "false"}
+          aria-describedby={ariaDescribedBy || (error && touched ? "url-error" : undefined)}
+          autoComplete="url"
           className={cn(
             "flex-1 bg-transparent px-3 py-3 text-sm outline-none placeholder:text-muted-foreground",
             disabled && "cursor-not-allowed"
@@ -161,6 +168,9 @@ export function UrlInput({ value, onChange, onSubmit, disabled = false, classNam
       <AnimatePresence>
         {error && touched && (
           <motion.div
+            id="url-error"
+            role="alert"
+            aria-live="polite"
             variants={fadeInVariants}
             initial="initial"
             animate="animate"
@@ -168,7 +178,7 @@ export function UrlInput({ value, onChange, onSubmit, disabled = false, classNam
             transition={defaultTransition}
             className="flex items-center gap-2 text-sm text-destructive"
           >
-            <AlertCircle className="h-4 w-4" />
+            <AlertCircle className="h-4 w-4" aria-hidden="true" />
             {error}
           </motion.div>
         )}

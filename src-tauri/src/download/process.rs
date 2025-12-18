@@ -25,6 +25,8 @@ pub enum ProcessOutput {
     Merging,
     /// Error detected in stderr
     Error(DownloadError),
+    /// Final file path detected from --print after_move:filepath
+    FilePath(String),
     /// Process completed successfully
     Completed(String), // file path
     /// Process exited with error code
@@ -146,9 +148,12 @@ pub async fn stream_process_output(
                     let _ = tx_stdout.send(ProcessOutput::Merging).await;
                 }
                 ParsedLine::Unknown => {
-                    // Check if this line contains the output filename
-                    // We don't need to do anything special here, just continue
-                    // The file path will be determined after process completion
+                    // Check if this line is the final filepath from --print after_move:filepath
+                    // The filepath is printed as a plain line (absolute path) after download completes
+                    let trimmed = line.trim();
+                    if !trimmed.is_empty() && is_valid_filepath(trimmed) {
+                        let _ = tx_stdout.send(ProcessOutput::FilePath(trimmed.to_string())).await;
+                    }
                 }
             }
         }
@@ -196,6 +201,37 @@ pub async fn stream_process_output(
     }
     
     Ok(())
+}
+
+/// Checks if a line looks like a valid file path (from --print after_move:filepath)
+fn is_valid_filepath(line: &str) -> bool {
+    let path = Path::new(line);
+    
+    // Must be an absolute path
+    if !path.is_absolute() {
+        return false;
+    }
+    
+    // Must have a file extension (media files always have extensions)
+    if path.extension().is_none() {
+        return false;
+    }
+    
+    // Should not contain yt-dlp output markers
+    if line.contains('[') || line.contains(']') || line.contains("download:") {
+        return false;
+    }
+    
+    // Check for common media extensions
+    let ext = path.extension()
+        .and_then(|e| e.to_str())
+        .map(|e| e.to_lowercase())
+        .unwrap_or_default();
+    
+    matches!(ext.as_str(), 
+        "mp4" | "mkv" | "webm" | "avi" | "mov" | "flv" |
+        "mp3" | "m4a" | "opus" | "ogg" | "wav" | "flac" | "aac"
+    )
 }
 
 /// Extracts the output file path from yt-dlp output lines
