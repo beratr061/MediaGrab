@@ -3,6 +3,47 @@
     "title": "MediaGrab",
     "description": "Media Downloader"
   },
+  "onboarding": {
+    "welcome": {
+      "title": "Welcome to MediaGrab!",
+      "description": "Download videos and audio from YouTube, Vimeo, Twitter, and many more platforms."
+    },
+    "url": {
+      "title": "Paste a URL",
+      "description": "Paste the URL of the video you want to download. Use Ctrl+V for quick paste."
+    },
+    "queue": {
+      "title": "Download Queue",
+      "description": "Add multiple videos and download them in sequence. Click the queue icon in the top right to manage."
+    },
+    "history": {
+      "title": "Download History",
+      "description": "Track all your downloads. Redownload from history or open files directly."
+    },
+    "settings": {
+      "title": "Settings",
+      "description": "Customize theme, language, cookie settings, and more."
+    },
+    "prev": "Back",
+    "next": "Next",
+    "skip": "Skip",
+    "finish": "Get Started"
+  },
+  "emptyState": {
+    "title": "Ready to Download",
+    "description": "Paste a video URL to get started",
+    "supportedPlatforms": "Supported platforms",
+    "pasteHint": "to paste"
+  },
+  "toast": {
+    "downloadComplete": "Download complete",
+    "downloadFailed": "Download failed",
+    "addedToQueue": "Added to queue",
+    "copiedToClipboard": "Copied to clipboard",
+    "settingsSaved": "Settings saved",
+    "urlsAdded": "{{count}} URLs added",
+    "undoSuccess": "Undo successful"
+  },
   "header": {
     "history": "Download History",
     "queue": "Download Queue",
@@ -51,7 +92,8 @@
     "redownload": "Redownload",
     "save": "Save",
     "close": "Close",
-    "copyDebugInfo": "Copy Debug Info"
+    "copyDebugInfo": "Copy Debug Info",
+    "undo": "Undo"
   },
   "status": {
     "idle": "Ready to download",
@@ -112,7 +154,14 @@
     "active": "Active",
     "pending": "Pending",
     "completed": "Completed",
-    "failed": "Failed"
+    "failed": "Failed",
+    "selectAll": "Select All",
+    "deselectAll": "Deselect All",
+    "cancelSelected": "Cancel Selected ({{count}})",
+    "clearCompleted": "Clear Completed",
+    "pauseAll": "Pause All",
+    "resumeAll": "Resume All",
+    "estimatedTime": "Estimated time: {{time}}"
   },
   "history": {
     "title": "Download History",
@@ -123,11 +172,23 @@
     "successful": "Successful",
     "failedCount": "Failed",
     "totalSize": "Total Size",
-    "totalDuration": "Total Duration"
+    "totalDuration": "Total Duration",
+    "noResults": "No results found",
+    "loadMore": "Load more ({{count}} remaining)",
+    "itemDeleted": "Item deleted"
   },
   "settings": {
     "title": "Settings",
+    "tabs": {
+      "general": "General",
+      "download": "Download",
+      "appearance": "Appearance",
+      "advanced": "Advanced",
+      "about": "About"
+    },
     "general": "General",
+    "resetToDefaults": "Reset to Defaults",
+    "resetConfirm": "Are you sure you want to reset all settings to defaults?",
     "language": "Language",
     "cookies": "Browser Cookies",
     "cookiesDescription": "Import cookies from your browser to access private or age-restricted content",

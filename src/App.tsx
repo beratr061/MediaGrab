@@ -2,8 +2,10 @@ import { useState, useCallback, useEffect, useRef, memo } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Settings, Bell, ListOrdered, History, ListVideo } from "lucide-react";
 import { invoke } from "@tauri-apps/api/core";
+// Note: Notification support requires @tauri-apps/plugin-notification to be installed
+// import { sendNotification, isPermissionGranted, requestPermission } from "@tauri-apps/plugin-notification";
 import { useTranslation } from "react-i18next";
-import { UrlInput } from "./components/UrlInput";
+import { UrlInput, saveRecentUrl } from "./components/UrlInput";
 import { FormatSelector } from "./components/FormatSelector";
 import { QualitySelector } from "./components/QualitySelector";
 import { FolderPicker } from "./components/FolderPicker";
@@ -20,6 +22,9 @@ import { QueuePanel } from "./components/QueuePanel";
 import { HistoryPanel } from "./components/HistoryPanel";
 import { PlaylistPanel } from "./components/PlaylistPanel";
 import { MissingExecutablesAlert } from "./components/MissingExecutablesAlert";
+import { OnboardingTour } from "./components/OnboardingTour";
+import { EmptyState } from "./components/EmptyState";
+import { useToast } from "./components/Toast";
 import { Button } from "./components/ui/button";
 import { useKeyboardShortcuts } from "./hooks/useKeyboardShortcuts";
 import { usePreferences } from "./hooks/usePreferences";
@@ -107,6 +112,7 @@ const Footer = memo(function Footer({ t }: { t: (key: string) => string }) {
 
 function App() {
   const { t } = useTranslation();
+  const { success, info } = useToast();
   
   // Form state
   const [url, setUrl] = useState("");
@@ -120,6 +126,16 @@ function App() {
   // Queue & History
   const { addToQueue, activeCount, pendingCount } = useQueue();
   const { addToHistory } = useHistory();
+  
+  // Note: Notification support can be added with @tauri-apps/plugin-notification
+  // useEffect(() => {
+  //   (async () => {
+  //     const permitted = await isPermissionGranted();
+  //     if (!permitted) {
+  //       await requestPermission();
+  //     }
+  //   })();
+  // }, []);
   
   // Media info & playlist
   const { mediaInfo, isLoadingMediaInfo, isPlaylist, playlistInfo, isLoadingPlaylist, fetchMediaInfo, handleUrlChange: onUrlChange, handlePaste: onPaste, clearMediaInfo } = useMediaInfo();
@@ -200,9 +216,28 @@ function App() {
     };
     
     await addToQueue(config);
+    saveRecentUrl(url.trim());
+    success(t("toast.addedToQueue"));
     setUrl("");
     clearMediaInfo();
-  }, [url, format, quality, outputFolder, preferences, addToQueue, clearMediaInfo]);
+  }, [url, format, quality, outputFolder, preferences, addToQueue, clearMediaInfo, success, t]);
+
+  // Handle multiple URLs pasted at once
+  const handleMultipleUrls = useCallback(async (urls: string[]) => {
+    for (const u of urls) {
+      const config: DownloadConfig = {
+        url: u.trim(),
+        format,
+        quality,
+        outputFolder: outputFolder || "",
+        embedSubtitles: preferences?.embedSubtitles ?? false,
+        cookiesFromBrowser: preferences?.cookiesFromBrowser ?? null,
+      };
+      await addToQueue(config);
+    }
+    info(t("toast.urlsAdded", { count: urls.length }));
+    openQueue();
+  }, [format, quality, outputFolder, preferences, addToQueue, info, t, openQueue]);
 
   const handlePlaylistDownload = useCallback(async (entries: PlaylistEntry[], config: Omit<DownloadConfig, "url">) => {
     for (const entry of entries) {
@@ -257,8 +292,15 @@ function App() {
           {/* URL Input */}
           <motion.div variants={itemVariants}>
             <label htmlFor="url-input" className="mb-2 block text-sm font-medium text-foreground">{t("form.videoUrl")}</label>
-            <UrlInput id="url-input" value={url} onChange={handleUrlChange} onSubmit={handleDownload} disabled={isDownloading} />
+            <UrlInput id="url-input" value={url} onChange={handleUrlChange} onSubmit={handleDownload} onMultipleUrls={handleMultipleUrls} disabled={isDownloading} />
           </motion.div>
+          
+          {/* Empty State when no URL */}
+          {!url && !mediaInfo && !isLoadingMediaInfo && !isPlaylist && (
+            <motion.div variants={itemVariants}>
+              <EmptyState />
+            </motion.div>
+          )}
 
           {/* Media Info Preview */}
           {(mediaInfo || isLoadingMediaInfo) && !isPlaylist && (
@@ -294,7 +336,7 @@ function App() {
             </div>
             <div>
               <label htmlFor="quality-selector" className="mb-2 block text-sm font-medium text-foreground">{t("form.quality")}</label>
-              <QualitySelector id="quality-selector" value={quality} onChange={handleQualityChange} disabled={isDownloading} />
+              <QualitySelector id="quality-selector" value={quality} onChange={handleQualityChange} disabled={isDownloading} duration={mediaInfo?.duration} />
             </div>
           </motion.div>
 
@@ -376,6 +418,7 @@ function App() {
         cookiesFromBrowser={preferences?.cookiesFromBrowser ?? null}
       />
       <MissingExecutablesAlert missingInfo={missingExecutables} onDismiss={dismissMissingExecutables} onCopyDebugInfo={copyDebugInfo} />
+      <OnboardingTour />
     </motion.main>
   );
 }

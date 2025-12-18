@@ -194,6 +194,15 @@ export function useDownload({
     setDownloadedFilePath(null);
     setRetryInfo(null);
 
+    // Reset backend download state if in terminal state (completed, failed, cancelled)
+    if (downloadState === "completed" || downloadState === "failed" || downloadState === "cancelled") {
+      try {
+        await invoke("reset_download");
+      } catch (err) {
+        console.error("Failed to reset download state:", err);
+      }
+    }
+
     const targetFolder = outputFolder || "";
 
     // Validate output folder if one is selected

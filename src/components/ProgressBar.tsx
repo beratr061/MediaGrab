@@ -1,10 +1,12 @@
 import { motion, AnimatePresence } from "framer-motion";
 import { cn } from "@/lib/utils";
 import { fadeInVariants, defaultTransition } from "@/lib/animations";
+import { SpeedGraph } from "./SpeedGraph";
 import type { ProgressEvent } from "@/types";
 
 interface ProgressBarProps {
   progress: ProgressEvent | null;
+  showSpeedGraph?: boolean;
   className?: string;
 }
 
@@ -21,15 +23,29 @@ function formatEta(seconds: number | null): string {
   return `${minutes}:${secs.toString().padStart(2, "0")}`;
 }
 
+function formatBytes(bytes: number | null): string {
+  if (bytes === null || bytes <= 0) return "--";
+  const units = ["B", "KB", "MB", "GB"];
+  let size = bytes;
+  let unitIndex = 0;
+  while (size >= 1024 && unitIndex < units.length - 1) {
+    size /= 1024;
+    unitIndex++;
+  }
+  return `${size.toFixed(1)} ${units[unitIndex]}`;
+}
+
 /**
  * Animated progress bar with shimmer effect
  * **Validates: Requirements 4.1, 4.2, 5.3, 5.4**
  */
-export function ProgressBar({ progress, className }: ProgressBarProps) {
+export function ProgressBar({ progress, showSpeedGraph = true, className }: ProgressBarProps) {
   const percentage = progress?.percentage ?? 0;
   const speed = progress?.speed ?? "--";
   const eta = progress?.etaSeconds ?? null;
   const isMerging = progress?.status === "merging";
+  const downloadedBytes = progress?.downloadedBytes ?? null;
+  const totalBytes = progress?.totalBytes ?? null;
 
   return (
     <motion.div 
@@ -99,6 +115,13 @@ export function ProgressBar({ progress, className }: ProgressBarProps) {
           >
             {percentage.toFixed(1)}%
           </motion.span>
+          {/* File size info */}
+          {(downloadedBytes !== null || totalBytes !== null) && (
+            <span className="text-muted-foreground tabular-nums">
+              {formatBytes(downloadedBytes)}
+              {totalBytes !== null && ` / ${formatBytes(totalBytes)}`}
+            </span>
+          )}
           <AnimatePresence>
             {isMerging && (
               <motion.span 
@@ -114,6 +137,10 @@ export function ProgressBar({ progress, className }: ProgressBarProps) {
           </AnimatePresence>
         </div>
         <div className="flex items-center gap-4 text-muted-foreground tabular-nums">
+          {/* Speed graph */}
+          {showSpeedGraph && !isMerging && (
+            <SpeedGraph speed={speed} />
+          )}
           <span>{speed}</span>
           <span>ETA: {formatEta(eta)}</span>
         </div>

@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import { motion } from 'framer-motion';
 import {
   X,
@@ -11,6 +12,8 @@ import {
   Loader2,
   FolderOpen,
   AlertCircle,
+  GripVertical,
+  ZoomIn,
 } from 'lucide-react';
 import { Button } from './ui/button';
 import { invoke } from '@tauri-apps/api/core';
@@ -23,6 +26,7 @@ export interface QueueItemCardProps {
   onRemove: () => void;
   onMoveUp?: (() => void) | undefined;
   onMoveDown?: (() => void) | undefined;
+  showDragHandle?: boolean;
 }
 
 export function QueueItemCard({
@@ -31,7 +35,9 @@ export function QueueItemCard({
   onRemove,
   onMoveUp,
   onMoveDown,
+  showDragHandle = false,
 }: QueueItemCardProps) {
+  const [showThumbnailPreview, setShowThumbnailPreview] = useState(false);
   const isActive = item.status === 'downloading' || item.status === 'merging';
   const isPending = item.status === 'pending';
   const isCompleted = item.status === 'completed';
@@ -114,7 +120,7 @@ export function QueueItemCard({
   return (
     <div
       className={cn(
-        'rounded-lg border bg-card p-3 transition-colors',
+        'rounded-lg border bg-card p-3 transition-colors group',
         isActive && 'border-primary/50',
         isFailed && 'border-destructive/50',
         isCompleted && 'border-green-500/30'
@@ -122,18 +128,43 @@ export function QueueItemCard({
     >
       {/* Header */}
       <div className="flex items-start gap-3">
-        {/* Thumbnail or placeholder */}
-        {item.thumbnail ? (
-          <img
-            src={item.thumbnail}
-            alt=""
-            className="h-12 w-20 rounded object-cover"
-          />
-        ) : (
-          <div className="flex h-12 w-20 items-center justify-center rounded bg-muted">
-            {getStatusIcon()}
+        {/* Drag handle */}
+        {showDragHandle && isPending && (
+          <div className="flex items-center justify-center h-12 text-muted-foreground cursor-grab active:cursor-grabbing">
+            <GripVertical className="h-4 w-4" />
           </div>
         )}
+        
+        {/* Thumbnail or placeholder with hover preview */}
+        <div 
+          className="relative"
+          onMouseEnter={() => item.thumbnail && setShowThumbnailPreview(true)}
+          onMouseLeave={() => setShowThumbnailPreview(false)}
+        >
+          {item.thumbnail ? (
+            <>
+              <img src={item.thumbnail} alt="" className="h-12 w-20 rounded object-cover" />
+              {/* Zoom indicator */}
+              <div className="absolute inset-0 flex items-center justify-center bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity rounded">
+                <ZoomIn className="h-4 w-4 text-white" />
+              </div>
+              {/* Enlarged preview on hover */}
+              {showThumbnailPreview && (
+                <motion.div
+                  initial={{ opacity: 0, scale: 0.9 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  className="absolute left-0 top-full mt-2 z-50 rounded-lg overflow-hidden shadow-xl border border-border"
+                >
+                  <img src={item.thumbnail} alt="" className="w-64 h-auto" />
+                </motion.div>
+              )}
+            </>
+          ) : (
+            <div className="flex h-12 w-20 items-center justify-center rounded bg-muted">
+              {getStatusIcon()}
+            </div>
+          )}
+        </div>
 
         {/* Info */}
         <div className="min-w-0 flex-1">

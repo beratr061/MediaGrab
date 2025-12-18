@@ -119,6 +119,39 @@ export function useQueue() {
     }
   }, []);
 
+  const reorderItems = useCallback(async (ids: number[]) => {
+    try {
+      await invoke('queue_reorder', { ids });
+      // Optimistically update local state
+      setItems((prev) => {
+        const itemMap = new Map(prev.map((item) => [item.id, item]));
+        const reordered = ids.map((id) => itemMap.get(id)).filter(Boolean) as QueueItem[];
+        const rest = prev.filter((item) => !ids.includes(item.id));
+        return [...reordered, ...rest];
+      });
+    } catch (err) {
+      console.error('Failed to reorder items:', err);
+      // Reload on error
+      loadQueue();
+    }
+  }, []);
+
+  const pauseAll = useCallback(async () => {
+    try {
+      await invoke('queue_pause_all');
+    } catch (err) {
+      console.error('Failed to pause all:', err);
+    }
+  }, []);
+
+  const resumeAll = useCallback(async () => {
+    try {
+      await invoke('queue_resume_all');
+    } catch (err) {
+      console.error('Failed to resume all:', err);
+    }
+  }, []);
+
   // Computed values
   const pendingCount = items.filter((i) => i.status === 'pending').length;
   const activeCount = items.filter(
@@ -136,6 +169,9 @@ export function useQueue() {
     clearCompleted,
     moveUp,
     moveDown,
+    reorderItems,
+    pauseAll,
+    resumeAll,
     reload: loadQueue,
     pendingCount,
     activeCount,

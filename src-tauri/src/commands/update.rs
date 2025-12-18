@@ -6,8 +6,7 @@
 
 use serde::{Deserialize, Serialize};
 use std::process::Stdio;
-use tauri::{AppHandle, Emitter};
-use tauri_plugin_updater::UpdaterExt;
+use tauri::AppHandle;
 use tokio::io::{AsyncBufReadExt, BufReader};
 
 use crate::utils::create_hidden_async_command;
@@ -62,14 +61,6 @@ pub struct AppUpdateResult {
     pub success: bool,
     /// Message describing the result
     pub message: String,
-}
-
-/// Progress event for app update download
-#[derive(Clone, Serialize)]
-#[serde(rename_all = "camelCase")]
-struct AppUpdateProgressEvent {
-    downloaded: u64,
-    total: Option<u64>,
 }
 
 /// Gets the current yt-dlp version
@@ -256,90 +247,26 @@ pub async fn get_ytdlp_version_cmd() -> Result<String, String> {
 /// Checks if an app update is available
 ///
 /// **Validates: Requirements 11.1 - Auto-updater**
+/// Note: Updater is currently disabled. Returns no update available.
 #[tauri::command]
 pub async fn check_app_update(app: AppHandle) -> Result<AppUpdateCheckResult, String> {
     let current_version = app.package_info().version.to_string();
     
-    match app.updater() {
-        Ok(updater) => {
-            match updater.check().await {
-                Ok(Some(update)) => {
-                    Ok(AppUpdateCheckResult {
-                        current_version,
-                        update_available: true,
-                        new_version: Some(update.version),
-                        error: None,
-                    })
-                }
-                Ok(None) => {
-                    Ok(AppUpdateCheckResult {
-                        current_version,
-                        update_available: false,
-                        new_version: None,
-                        error: None,
-                    })
-                }
-                Err(e) => {
-                    Ok(AppUpdateCheckResult {
-                        current_version,
-                        update_available: false,
-                        new_version: None,
-                        error: Some(format!("Failed to check for updates: {}", e)),
-                    })
-                }
-            }
-        }
-        Err(e) => {
-            Ok(AppUpdateCheckResult {
-                current_version,
-                update_available: false,
-                new_version: None,
-                error: Some(format!("Updater not available: {}", e)),
-            })
-        }
-    }
+    Ok(AppUpdateCheckResult {
+        current_version,
+        update_available: false,
+        new_version: None,
+        error: Some("App updater is not configured".to_string()),
+    })
 }
 
 /// Downloads and installs the app update
 ///
 /// **Validates: Requirements 11.1 - Auto-updater**
+/// Note: Updater is currently disabled.
 #[tauri::command]
-pub async fn install_app_update(app: AppHandle) -> Result<AppUpdateResult, String> {
-    let updater = app.updater()
-        .map_err(|e| format!("Updater not available: {}", e))?;
-    
-    let update = updater.check().await
-        .map_err(|e| format!("Failed to check for updates: {}", e))?
-        .ok_or_else(|| "No update available".to_string())?;
-    
-    let app_handle = app.clone();
-    
-    // Download with progress reporting
-    let bytes = update.download(
-        move |chunk_length, content_length| {
-            let _ = app_handle.emit("app-update-progress", AppUpdateProgressEvent {
-                downloaded: chunk_length as u64,
-                total: content_length.map(|l| l as u64),
-            });
-        },
-        || {
-            // Download finished callback
-        }
-    ).await.map_err(|e| format!("Failed to download update: {}", e))?;
-    
-    // Install the update (this will restart the app)
-    update.install(bytes)
-        .map_err(|e| format!("Failed to install update: {}", e))?;
-    
-    // Request app restart
-    app.restart();
-    
-    // This line is technically unreachable but needed for type checking
-    #[allow(unreachable_code)]
-    Ok(AppUpdateResult {
-        success: true,
-        message: "Update installed successfully. Restarting...".to_string(),
-    })
+pub async fn install_app_update(_app: AppHandle) -> Result<AppUpdateResult, String> {
+    Err("App updater is not configured".to_string())
 }
 
 /// Gets the current app version

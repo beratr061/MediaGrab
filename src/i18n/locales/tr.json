@@ -3,6 +3,46 @@
     "title": "MediaGrab",
     "description": "Medya İndirici"
   },
+  "onboarding": {
+    "welcome": {
+      "title": "MediaGrab'a Hoş Geldiniz!",
+      "description": "YouTube, Vimeo, Twitter ve daha birçok platformdan video ve ses indirin."
+    },
+    "url": {
+      "title": "URL Yapıştırın",
+      "description": "İndirmek istediğiniz videonun URL'sini yapıştırın. Ctrl+V ile hızlıca yapıştırabilirsiniz."
+    },
+    "queue": {
+      "title": "İndirme Kuyruğu",
+      "description": "Birden fazla video ekleyin ve sırayla indirin. Kuyruğu yönetmek için sağ üstteki simgeye tıklayın."
+    },
+    "history": {
+      "title": "İndirme Geçmişi",
+      "description": "Tüm indirmelerinizi takip edin. Geçmişten tekrar indirebilir veya dosyaları açabilirsiniz."
+    },
+    "settings": {
+      "title": "Ayarlar",
+      "description": "Tema, dil, çerez ayarları ve daha fazlasını özelleştirin."
+    },
+    "prev": "Geri",
+    "next": "İleri",
+    "skip": "Atla",
+    "finish": "Başla"
+  },
+  "emptyState": {
+    "title": "İndirmeye Hazır",
+    "description": "Başlamak için bir video URL'si yapıştırın",
+    "supportedPlatforms": "Desteklenen platformlar",
+    "pasteHint": "ile yapıştırın"
+  },
+  "toast": {
+    "downloadComplete": "İndirme tamamlandı",
+    "downloadFailed": "İndirme başarısız",
+    "addedToQueue": "Kuyruğa eklendi",
+    "copiedToClipboard": "Panoya kopyalandı",
+    "settingsSaved": "Ayarlar kaydedildi",
+    "urlsAdded": "{{count}} URL eklendi"
+  },
   "header": {
     "history": "İndirme Geçmişi",
     "queue": "İndirme Kuyruğu",
@@ -51,7 +91,8 @@
     "redownload": "Tekrar İndir",
     "save": "Kaydet",
     "close": "Kapat",
-    "copyDebugInfo": "Hata Bilgisini Kopyala"
+    "copyDebugInfo": "Hata Bilgisini Kopyala",
+    "undo": "Geri Al"
   },
   "status": {
     "idle": "İndirmeye hazır",
@@ -112,7 +153,14 @@
     "active": "Aktif",
     "pending": "Bekleyen",
     "completed": "Tamamlanan",
-    "failed": "Başarısız"
+    "failed": "Başarısız",
+    "selectAll": "Tümünü Seç",
+    "deselectAll": "Seçimi Kaldır",
+    "cancelSelected": "Seçilenleri İptal Et ({{count}})",
+    "clearCompleted": "Tamamlananları Temizle",
+    "pauseAll": "Tümünü Duraklat",
+    "resumeAll": "Tümünü Devam Ettir",
+    "estimatedTime": "Tahmini süre: {{time}}"
   },
   "history": {
     "title": "İndirme Geçmişi",
@@ -123,11 +171,23 @@
     "successful": "Başarılı",
     "failedCount": "Başarısız",
     "totalSize": "Toplam Boyut",
-    "totalDuration": "Toplam Süre"
+    "totalDuration": "Toplam Süre",
+    "noResults": "Sonuç bulunamadı",
+    "loadMore": "Daha fazla yükle ({{count}} kaldı)",
+    "itemDeleted": "Öğe silindi"
   },
   "settings": {
     "title": "Ayarlar",
+    "tabs": {
+      "general": "Genel",
+      "download": "İndirme",
+      "appearance": "Görünüm",
+      "advanced": "Gelişmiş",
+      "about": "Hakkında"
+    },
     "general": "Genel",
+    "resetToDefaults": "Varsayılanlara Dön",
+    "resetConfirm": "Tüm ayarları varsayılanlara döndürmek istediğinizden emin misiniz?",
     "language": "Dil",
     "cookies": "Tarayıcı Çerezleri",
     "cookiesDescription": "Özel veya yaş kısıtlamalı içeriklere erişmek için tarayıcınızdan çerez içe aktarın",

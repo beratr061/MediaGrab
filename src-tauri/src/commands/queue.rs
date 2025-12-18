@@ -256,7 +256,7 @@ fn find_latest_file_sync(folder: &str) -> Option<String> {
 
 /// Sets up the queue event listener to forward events to frontend
 pub fn setup_queue_events(app: AppHandle, mut event_rx: mpsc::UnboundedReceiver<QueueEvent>) {
-    tokio::spawn(async move {
+    tauri::async_runtime::spawn(async move {
         while let Some(event) = event_rx.recv().await {
             let _ = app.emit(EVENT_QUEUE_UPDATE, &event);
         }

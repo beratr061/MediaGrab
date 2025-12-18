@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { User, Clock, HardDrive, Image as ImageIcon } from "lucide-react";
 import { slideUpVariants, defaultTransition } from "@/lib/animations";
@@ -102,21 +103,41 @@ function LoadingSkeleton() {
 }
 
 function MediaInfoContent({ mediaInfo }: { mediaInfo: MediaInfo }) {
+  const [showLargeThumbnail, setShowLargeThumbnail] = useState(false);
+  
   return (
     <div className="flex gap-4">
-      {/* Thumbnail */}
-      <div className="h-20 w-32 shrink-0 overflow-hidden rounded-md bg-muted">
+      {/* Thumbnail with hover preview */}
+      <div 
+        className="h-20 w-32 shrink-0 overflow-hidden rounded-md bg-muted relative group cursor-pointer"
+        onMouseEnter={() => mediaInfo.thumbnail && setShowLargeThumbnail(true)}
+        onMouseLeave={() => setShowLargeThumbnail(false)}
+      >
         {mediaInfo.thumbnail ? (
-          <img
-            src={mediaInfo.thumbnail}
-            alt={mediaInfo.title}
-            className="h-full w-full object-cover"
-            onError={(e) => {
-              // Hide broken image and show placeholder
-              e.currentTarget.style.display = "none";
-              e.currentTarget.nextElementSibling?.classList.remove("hidden");
-            }}
-          />
+          <>
+            <img
+              src={mediaInfo.thumbnail}
+              alt={mediaInfo.title}
+              className="h-full w-full object-cover transition-transform group-hover:scale-105"
+              onError={(e) => {
+                e.currentTarget.style.display = "none";
+                e.currentTarget.nextElementSibling?.classList.remove("hidden");
+              }}
+            />
+            {/* Enlarged thumbnail on hover */}
+            <AnimatePresence>
+              {showLargeThumbnail && (
+                <motion.div
+                  initial={{ opacity: 0, scale: 0.9 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  exit={{ opacity: 0, scale: 0.9 }}
+                  className="absolute left-0 top-full mt-2 z-50 rounded-lg overflow-hidden shadow-xl border border-border"
+                >
+                  <img src={mediaInfo.thumbnail} alt={mediaInfo.title} className="w-80 h-auto" />
+                </motion.div>
+              )}
+            </AnimatePresence>
+          </>
         ) : null}
         <div className={cn(
           "flex h-full w-full items-center justify-center text-muted-foreground",

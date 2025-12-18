@@ -323,7 +323,7 @@ export function StatusDisplay({
                     {error}
                   </p>
                 )}
-                {/* Retry button for retryable errors (network errors) */}
+                {/* Retry button for retryable errors (network errors) - more prominent */}
                 {/* **Validates: Requirements 6.2** */}
                 {showRetryButton && (
                   <motion.div
@@ -331,15 +331,15 @@ export function StatusDisplay({
                     whileHover="hover"
                     whileTap="tap"
                     transition={springTransition}
-                    className="pt-1"
+                    className="pt-2"
                   >
                     <Button
-                      size="sm"
-                      variant="outline"
+                      size="default"
+                      variant="default"
                       onClick={onRetry}
-                      className="flex items-center gap-2"
+                      className="flex items-center gap-2 w-full justify-center"
                     >
-                      <RefreshCw className="h-3.5 w-3.5" />
+                      <RefreshCw className="h-4 w-4" />
                       Retry Download
                     </Button>
                   </motion.div>

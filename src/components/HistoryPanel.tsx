@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useMemo, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   X,
@@ -13,11 +13,17 @@ import {
   CheckCircle,
   XCircle,
   Search,
+  Undo2,
 } from 'lucide-react';
 import { invoke } from '@tauri-apps/api/core';
+import { useTranslation } from 'react-i18next';
 import { Button } from './ui/button';
+import { SkeletonHistoryItem, SkeletonList } from './Skeleton';
 import { useHistory } from '@/hooks/useHistory';
+import { useToast } from './Toast';
 import type { HistoryItem, DownloadConfig } from '@/types';
+
+const ITEMS_PER_PAGE = 20;
 
 interface HistoryPanelProps {
   isOpen: boolean;
@@ -26,6 +32,8 @@ interface HistoryPanelProps {
 }
 
 export function HistoryPanel({ isOpen, onClose, onRedownload }: HistoryPanelProps) {
+  const { t } = useTranslation();
+  const { info } = useToast();
   const {
     items,
     stats,
@@ -34,25 +42,67 @@ export function HistoryPanel({ isOpen, onClose, onRedownload }: HistoryPanelProp
     clearHistory,
     formatBytes,
     formatDuration,
+    addToHistory,
   } = useHistory();
 
   const [searchQuery, setSearchQuery] = useState('');
   const [filter, setFilter] = useState<'all' | 'completed' | 'failed'>('all');
+  const [visibleCount, setVisibleCount] = useState(ITEMS_PER_PAGE);
+  const [lastDeleted, setLastDeleted] = useState<HistoryItem | null>(null);
 
-  // Filter items based on search and status
-  const filteredItems = items.filter((item) => {
-    const matchesSearch =
-      searchQuery === '' ||
-      item.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      item.url.toLowerCase().includes(searchQuery.toLowerCase());
+  // Filter items based on search and status with memoization
+  const filteredItems = useMemo(() => {
+    return items.filter((item) => {
+      const matchesSearch =
+        searchQuery === '' ||
+        item.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        item.url.toLowerCase().includes(searchQuery.toLowerCase());
 
-    const matchesFilter =
-      filter === 'all' ||
-      (filter === 'completed' && item.status === 'completed') ||
-      (filter === 'failed' && item.status === 'failed');
+      const matchesFilter =
+        filter === 'all' ||
+        (filter === 'completed' && item.status === 'completed') ||
+        (filter === 'failed' && item.status === 'failed');
 
-    return matchesSearch && matchesFilter;
-  });
+      return matchesSearch && matchesFilter;
+    });
+  }, [items, searchQuery, filter]);
+
+  // Virtualized items (lazy loading)
+  const visibleItems = useMemo(() => {
+    return filteredItems.slice(0, visibleCount);
+  }, [filteredItems, visibleCount]);
+
+  const hasMore = visibleCount < filteredItems.length;
+
+  const loadMore = useCallback(() => {
+    setVisibleCount((prev) => Math.min(prev + ITEMS_PER_PAGE, filteredItems.length));
+  }, [filteredItems.length]);
+
+  // Undo delete functionality
+  const handleRemoveWithUndo = useCallback(async (item: HistoryItem) => {
+    setLastDeleted(item);
+    await removeItem(item.id);
+    
+    // Auto-clear undo after 5 seconds
+    setTimeout(() => setLastDeleted(null), 5000);
+  }, [removeItem]);
+
+  const handleUndo = useCallback(async () => {
+    if (lastDeleted) {
+      await addToHistory(
+        { url: lastDeleted.url, format: lastDeleted.format as any, quality: lastDeleted.quality as any, outputFolder: '', embedSubtitles: false, cookiesFromBrowser: null },
+        lastDeleted.title,
+        lastDeleted.thumbnail,
+        lastDeleted.filePath,
+        lastDeleted.fileSize,
+        lastDeleted.duration,
+        lastDeleted.status,
+        lastDeleted.error
+      );
+      setLastDeleted(null);
+      info(t('toast.undoSuccess'));
+    }
+  }, [lastDeleted, addToHistory, info, t]);
 
   const handleOpenFile = async (filePath: string) => {
     try {
@@ -195,35 +245,58 @@ export function HistoryPanel({ isOpen, onClose, onRedownload }: HistoryPanelProp
               {/* History List */}
               <div className="flex-1 overflow-y-auto px-6 py-4">
                 {isLoading ? (
-                  <div className="flex items-center justify-center py-12">
-                    <RefreshCw className="h-6 w-6 animate-spin text-muted-foreground" />
-                  </div>
+                  <SkeletonList count={3} ItemComponent={SkeletonHistoryItem} />
                 ) : filteredItems.length === 0 ? (
                   <div className="flex flex-col items-center justify-center py-12 text-muted-foreground">
                     <History className="mb-2 h-12 w-12 opacity-50" />
                     <p>
                       {searchQuery || filter !== 'all'
-                        ? 'Sonuç bulunamadı'
-                        : 'Henüz indirme geçmişi yok'}
+                        ? t('history.noResults')
+                        : t('history.empty')}
                     </p>
                   </div>
                 ) : (
                   <div className="space-y-3">
-                    {filteredItems.map((item) => (
+                    {visibleItems.map((item) => (
                       <HistoryItemCard
                         key={item.id}
                         item={item}
                         onOpenFile={handleOpenFile}
                         onOpenFolder={handleOpenFolder}
                         onRedownload={() => handleRedownload(item)}
-                        onRemove={() => removeItem(item.id)}
+                        onRemove={() => handleRemoveWithUndo(item)}
                         formatDate={formatDate}
                         formatBytes={formatBytes}
                       />
                     ))}
+                    
+                    {/* Load more button for virtualization */}
+                    {hasMore && (
+                      <Button variant="outline" onClick={loadMore} className="w-full mt-4">
+                        {t('history.loadMore', { count: filteredItems.length - visibleCount })}
+                      </Button>
+                    )}
                   </div>
                 )}
               </div>
+              
+              {/* Undo banner */}
+              <AnimatePresence>
+                {lastDeleted && (
+                  <motion.div
+                    initial={{ opacity: 0, y: 50 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, y: 50 }}
+                    className="absolute bottom-20 left-4 right-4 flex items-center justify-between rounded-lg bg-card border border-border p-3 shadow-lg"
+                  >
+                    <span className="text-sm">{t('history.itemDeleted')}</span>
+                    <Button variant="ghost" size="sm" onClick={handleUndo}>
+                      <Undo2 className="mr-1 h-4 w-4" />
+                      {t('buttons.undo')}
+                    </Button>
+                  </motion.div>
+                )}
+              </AnimatePresence>
 
               {/* Footer */}
               {items.length > 0 && (

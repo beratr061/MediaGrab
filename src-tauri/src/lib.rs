@@ -29,7 +29,6 @@ use tauri::{
     Emitter, Manager, RunEvent, WindowEvent,
 };
 use tauri_plugin_store::StoreExt;
-use tauri_plugin_updater::UpdaterExt;
 use utils::logging;
 
 #[tauri::command]
@@ -105,8 +104,7 @@ const EVENT_UPDATE_AVAILABLE: &str = "ytdlp-update-available";
 /// Event name for missing executables notification
 const EVENT_EXECUTABLES_MISSING: &str = "executables-missing";
 
-/// Event name for app update availability notification
-const EVENT_APP_UPDATE_AVAILABLE: &str = "app-update-available";
+
 
 
 
@@ -128,13 +126,7 @@ struct ExecutablesMissingEvent {
     error: String,
 }
 
-/// Payload for app update available event
-#[derive(Clone, serde::Serialize)]
-#[serde(rename_all = "camelCase")]
-struct AppUpdateAvailableEvent {
-    current_version: String,
-    new_version: String,
-}
+
 
 
 
@@ -177,60 +169,7 @@ async fn check_executables_on_startup(app: tauri::AppHandle) {
     }
 }
 
-/// Checks for app updates on startup
-/// 
-/// **Validates: Requirements 11.1 - Auto-updater**
-async fn check_app_updates_on_startup(app: tauri::AppHandle) {
-    // Small delay to let the app fully initialize
-    tokio::time::sleep(tokio::time::Duration::from_secs(3)).await;
-    
-    // Check if app update check is enabled in preferences
-    let check_enabled = match app.store("preferences.json") {
-        Ok(store) => {
-            match store.get("preferences") {
-                Some(value) => {
-                    value.get("checkAppUpdatesOnStartup")
-                        .and_then(|v| v.as_bool())
-                        .unwrap_or(true)
-                }
-                None => true,
-            }
-        }
-        Err(_) => true,
-    };
-    
-    if !check_enabled {
-        return;
-    }
-    
-    // Check for updates using Tauri updater
-    match app.updater() {
-        Ok(updater) => {
-            match updater.check().await {
-                Ok(Some(update)) => {
-                    let current_version = app.package_info().version.to_string();
-                    let new_version = update.version.clone();
-                    
-                    tracing::info!("App update available: {} -> {}", current_version, new_version);
-                    
-                    let _ = app.emit(EVENT_APP_UPDATE_AVAILABLE, AppUpdateAvailableEvent {
-                        current_version,
-                        new_version,
-                    });
-                }
-                Ok(None) => {
-                    tracing::info!("App is up to date");
-                }
-                Err(e) => {
-                    tracing::warn!("Failed to check for app updates: {}", e);
-                }
-            }
-        }
-        Err(e) => {
-            tracing::warn!("Updater not available: {}", e);
-        }
-    }
-}
+
 
 /// Checks for yt-dlp updates on startup if enabled in preferences
 /// 
@@ -300,7 +239,6 @@ pub fn run() {
         .plugin(tauri_plugin_notification::init())
         .plugin(tauri_plugin_shell::init())
         .plugin(tauri_plugin_clipboard_manager::init())
-        .plugin(tauri_plugin_updater::Builder::new().build())
         .manage(download_manager)
         .manage(download_queue)
         .setup(move |app| {
@@ -328,12 +266,6 @@ pub fn run() {
             let app_handle = app.handle().clone();
             tauri::async_runtime::spawn(async move {
                 check_for_updates_on_startup(app_handle).await;
-            });
-
-            // Spawn background app update check
-            let app_handle_app_update = app.handle().clone();
-            tauri::async_runtime::spawn(async move {
-                check_app_updates_on_startup(app_handle_app_update).await;
             });
 
             Ok(())
