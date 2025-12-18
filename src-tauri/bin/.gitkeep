@@ -1,0 +1,3 @@
+# Bu klasör yt-dlp, ffmpeg ve ffprobe binary dosyalarını içerir.
+# Binary dosyaları .gitignore ile hariç tutulmuştur.
+# Kullanıcılar bu dosyaları kendileri indirmelidir.

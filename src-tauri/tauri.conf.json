@@ -1,0 +1,64 @@
+{
+  "$schema": "https://schema.tauri.app/config/2",
+  "productName": "MediaGrab",
+  "version": "1.0.0",
+  "identifier": "com.mediagrab",
+  "build": {
+    "beforeDevCommand": "npm run dev",
+    "devUrl": "http://localhost:1420",
+    "beforeBuildCommand": "npm run build",
+    "frontendDist": "../dist"
+  },
+  "app": {
+    "windows": [
+      {
+        "title": "MediaGrab",
+        "width": 800,
+        "height": 600,
+        "minWidth": 600,
+        "minHeight": 500,
+        "visible": true,
+        "resizable": true,
+        "closable": true,
+        "minimizable": true,
+        "maximizable": true,
+        "center": true,
+        "decorations": true,
+        "transparent": false
+      }
+    ],
+    "security": {
+      "csp": null
+    },
+    "trayIcon": {
+      "iconPath": "icons/32x32.png",
+      "iconAsTemplate": false,
+      "id": "main-tray"
+    }
+  },
+  "bundle": {
+    "active": true,
+    "targets": ["msi", "nsis"],
+    "icon": [
+      "icons/32x32.png",
+      "icons/128x128.png",
+      "icons/128x128@2x.png",
+      "icons/icon.icns",
+      "icons/icon.ico"
+    ],
+    "externalBin": [
+      "bin/yt-dlp",
+      "bin/ffmpeg",
+      "bin/ffprobe"
+    ],
+    "windows": {
+      "certificateThumbprint": null,
+      "digestAlgorithm": "sha256",
+      "timestampUrl": ""
+    },
+    "shortDescription": "A modern media downloader for YouTube and other platforms",
+    "longDescription": "MediaGrab is a Windows desktop application that provides a user-friendly interface for downloading media from YouTube and other platforms supported by yt-dlp.",
+    "copyright": "Copyright © 2025 MediaGrab",
+    "category": "Utility"
+  }
+}

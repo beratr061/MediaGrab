@@ -1,0 +1,3 @@
+# Ignore actual executables (they should be downloaded separately)
+*.exe
+!README.md

@@ -1,0 +1,94 @@
+# ================================
+# MediaGrab - Git Ignore File
+# ================================
+
+# ============ Dependencies ============
+node_modules/
+.pnp
+.pnp.js
+
+# ============ Build Outputs ============
+dist/
+dist-ssr/
+build/
+*.local
+
+# ============ Rust / Tauri ============
+src-tauri/target/
+src-tauri/gen/
+**/*.rs.bk
+Cargo.lock
+!src-tauri/Cargo.lock
+
+# ============ Logs ============
+logs/
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+lerna-debug.log*
+
+# ============ Editor & IDE ============
+.vscode/*
+!.vscode/extensions.json
+!.vscode/settings.json
+.idea/
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
+*.swp
+*.swo
+*~
+
+# ============ OS Generated ============
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+desktop.ini
+
+# ============ Environment ============
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+*.env
+
+# ============ Testing ============
+coverage/
+.nyc_output/
+*.lcov
+
+# ============ Misc ============
+*.pem
+*.key
+*.cert
+.cache/
+.temp/
+.tmp/
+
+# ============ External Binaries ============
+# yt-dlp and ffmpeg binaries (users should download their own)
+src-tauri/bin/*.exe
+src-tauri/bin/yt-dlp*
+src-tauri/bin/ffmpeg*
+src-tauri/bin/ffprobe*
+!src-tauri/bin/.gitkeep
+
+# ============ Downloaded Media ============
+*.mp4
+*.mp3
+*.webm
+*.mkv
+*.m4a
+*.opus
+*.flac
+*.wav
+*.avi
