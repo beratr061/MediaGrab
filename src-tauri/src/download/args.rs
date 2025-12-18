@@ -38,6 +38,7 @@ pub struct ArgumentBuilder {
     config: DownloadConfig,
     filename_template: FilenameTemplate,
     ffmpeg_location: Option<String>,
+    proxy_url: Option<String>,
 }
 
 impl ArgumentBuilder {
@@ -47,6 +48,7 @@ impl ArgumentBuilder {
             config,
             filename_template: FilenameTemplate::default(),
             ffmpeg_location: None,
+            proxy_url: None,
         }
     }
 
@@ -56,6 +58,11 @@ impl ArgumentBuilder {
         self
     }
 
+    /// Sets the proxy URL
+    pub fn with_proxy(mut self, proxy_url: Option<String>) -> Self {
+        self.proxy_url = proxy_url;
+        self
+    }
 
     /// Sets the ffmpeg location path
     pub fn with_ffmpeg_location(mut self, path: String) -> Self {
@@ -70,27 +77,20 @@ impl ArgumentBuilder {
     /// - Audio formats use appropriate extraction flags
     fn build_format_selector(&self) -> String {
         match self.config.format.as_str() {
-            "audio-mp3" => {
-                // Best audio, will be converted to MP3
+            // Audio formats - all use bestaudio selector
+            "audio-mp3" | "audio-aac" | "audio-opus" | "audio-flac" | "audio-wav" | "audio-best" => {
                 "bestaudio/best".to_string()
             }
-            "audio-best" => {
-                // Best audio without re-encoding (Requirement 2.5)
-                "bestaudio/best".to_string()
-            }
-            "video-mp4" | _ => {
-                // Video format with quality-specific selector and fallback logic
+            // Video formats - use quality-specific selector
+            "video-mp4" | "video-webm" | "video-mkv" | _ => {
                 match self.config.quality.as_str() {
                     "1080p" => {
-                        // Try 1080p, fallback to best available at or below 1080p, then any best
                         "bestvideo[height<=1080]+bestaudio/best[height<=1080]/best".to_string()
                     }
                     "720p" => {
-                        // Try 720p, fallback to best available at or below 720p, then any best
                         "bestvideo[height<=720]+bestaudio/best[height<=720]/best".to_string()
                     }
                     "best" | _ => {
-                        // Best available quality
                         "bestvideo+bestaudio/best".to_string()
                     }
                 }
@@ -113,13 +113,43 @@ impl ArgumentBuilder {
         args.push("-o".to_string());
         args.push(self.filename_template.to_template_string().to_string());
 
-        // Audio extraction for audio formats (Requirement 2.3)
-        if self.config.format == "audio-mp3" {
-            args.push("-x".to_string()); // Extract audio
-            args.push("--audio-format".to_string());
-            args.push("mp3".to_string());
-        } else if self.config.format == "audio-best" {
-            args.push("-x".to_string()); // Extract audio, keep original format
+        // Audio extraction and format conversion
+        match self.config.format.as_str() {
+            "audio-mp3" => {
+                args.push("-x".to_string());
+                args.push("--audio-format".to_string());
+                args.push("mp3".to_string());
+                args.push("--audio-quality".to_string());
+                args.push("0".to_string()); // Best quality
+            }
+            "audio-aac" => {
+                args.push("-x".to_string());
+                args.push("--audio-format".to_string());
+                args.push("m4a".to_string()); // AAC in M4A container
+                args.push("--audio-quality".to_string());
+                args.push("0".to_string());
+            }
+            "audio-opus" => {
+                args.push("-x".to_string());
+                args.push("--audio-format".to_string());
+                args.push("opus".to_string());
+                args.push("--audio-quality".to_string());
+                args.push("0".to_string());
+            }
+            "audio-flac" => {
+                args.push("-x".to_string());
+                args.push("--audio-format".to_string());
+                args.push("flac".to_string());
+            }
+            "audio-wav" => {
+                args.push("-x".to_string());
+                args.push("--audio-format".to_string());
+                args.push("wav".to_string());
+            }
+            "audio-best" => {
+                args.push("-x".to_string()); // Extract audio, keep original format
+            }
+            _ => {} // Video formats don't need audio extraction
         }
 
         // Embed thumbnail (Requirement 12.1)
@@ -149,10 +179,29 @@ impl ArgumentBuilder {
             args.push(ffmpeg_path.clone());
         }
 
-        // Merge output format for video (ensures MP4 container)
-        if self.config.format == "video-mp4" {
-            args.push("--merge-output-format".to_string());
-            args.push("mp4".to_string());
+        // Proxy if specified
+        if let Some(ref proxy) = self.proxy_url {
+            if !proxy.is_empty() {
+                args.push("--proxy".to_string());
+                args.push(proxy.clone());
+            }
+        }
+
+        // Merge output format for video formats
+        match self.config.format.as_str() {
+            "video-mp4" => {
+                args.push("--merge-output-format".to_string());
+                args.push("mp4".to_string());
+            }
+            "video-webm" => {
+                args.push("--merge-output-format".to_string());
+                args.push("webm".to_string());
+            }
+            "video-mkv" => {
+                args.push("--merge-output-format".to_string());
+                args.push("mkv".to_string());
+            }
+            _ => {} // Audio formats don't need merge output format
         }
 
         // Progress template for structured output parsing
@@ -187,7 +236,10 @@ impl ArgumentBuilder {
 
     /// Checks if audio extraction is enabled based on format
     pub fn is_audio_extraction(&self) -> bool {
-        matches!(self.config.format.as_str(), "audio-mp3" | "audio-best")
+        matches!(
+            self.config.format.as_str(),
+            "audio-mp3" | "audio-best" | "audio-flac" | "audio-wav" | "audio-aac" | "audio-opus"
+        )
     }
 }
 

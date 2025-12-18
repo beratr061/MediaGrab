@@ -1,6 +1,6 @@
 import { useState, useCallback, useEffect, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Settings, Bell, ListOrdered } from "lucide-react";
+import { Settings, Bell, ListOrdered, History, ListVideo } from "lucide-react";
 import { invoke } from "@tauri-apps/api/core";
 import { listen } from "@tauri-apps/api/event";
 import { UrlInput } from "./components/UrlInput";
@@ -17,11 +17,14 @@ import { OpenFolderButton } from "./components/OpenFolderButton";
 import { PlayButton } from "./components/PlayButton";
 import { SettingsPanel } from "./components/SettingsPanel";
 import { QueuePanel } from "./components/QueuePanel";
+import { HistoryPanel } from "./components/HistoryPanel";
+import { PlaylistPanel } from "./components/PlaylistPanel";
 import { MissingExecutablesAlert } from "./components/MissingExecutablesAlert";
 import { Button } from "./components/ui/button";
 import { useKeyboardShortcuts } from "./hooks/useKeyboardShortcuts";
 import { usePreferences } from "./hooks/usePreferences";
 import { useQueue } from "./hooks/useQueue";
+import { useHistory } from "./hooks/useHistory";
 import { validateUrl } from "./lib/validation";
 import {
   fadeInVariants,
@@ -31,7 +34,7 @@ import {
   defaultTransition,
   springTransition,
 } from "./lib/animations";
-import type { DownloadState, Format, Quality, ProgressEvent, MediaInfo, FolderValidationResult, ExecutablesMissingEvent, DownloadConfig } from "./types";
+import type { DownloadState, Format, Quality, ProgressEvent, MediaInfo, FolderValidationResult, ExecutablesMissingEvent, DownloadConfig, PlaylistInfo, PlaylistEntry } from "./types";
 
 function App() {
   // Form state
@@ -53,6 +56,13 @@ function App() {
   // Settings state
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [isQueueOpen, setIsQueueOpen] = useState(false);
+  const [isHistoryOpen, setIsHistoryOpen] = useState(false);
+  const [isPlaylistOpen, setIsPlaylistOpen] = useState(false);
+  
+  // Playlist state
+  const [isPlaylist, setIsPlaylist] = useState(false);
+  const [playlistInfo, setPlaylistInfo] = useState<PlaylistInfo | null>(null);
+  const [isLoadingPlaylist, setIsLoadingPlaylist] = useState(false);
   const { 
     preferences, 
     setPreferences,
@@ -63,6 +73,9 @@ function App() {
   
   // Queue hook
   const { addToQueue, activeCount, pendingCount } = useQueue();
+  
+  // History hook
+  const { addToHistory } = useHistory();
   
   // Track if preferences have been applied to form state
   const preferencesAppliedRef = useRef(false);
@@ -147,6 +160,42 @@ function App() {
         }
       }
     );
+    
+    // History tracking for completed downloads
+    const unlistenHistoryComplete = listen<{ success: boolean; filePath?: string; error?: string }>(
+      "download-complete",
+      async (event) => {
+        // Get current download config from closure
+        const currentUrl = url;
+        const currentFormat = format;
+        const currentQuality = quality;
+        const currentMediaInfo = mediaInfo;
+        
+        if (currentUrl) {
+          try {
+            await addToHistory(
+              {
+                url: currentUrl,
+                format: currentFormat,
+                quality: currentQuality,
+                outputFolder: outputFolder || "",
+                embedSubtitles: preferences?.embedSubtitles ?? false,
+                cookiesFromBrowser: preferences?.cookiesFromBrowser ?? null,
+              },
+              currentMediaInfo?.title || "Unknown",
+              currentMediaInfo?.thumbnail || null,
+              event.payload.filePath || null,
+              currentMediaInfo?.filesizeApprox || null,
+              currentMediaInfo?.duration || null,
+              event.payload.success ? "completed" : "failed",
+              event.payload.error || null
+            );
+          } catch (err) {
+            console.error("Failed to add to history:", err);
+          }
+        }
+      }
+    );
 
     // Update available event listener
     const unlistenUpdateAvailable = listen<{ currentVersion: string; latestVersion: string | null }>(
@@ -173,8 +222,9 @@ function App() {
       unlistenComplete.then((unlisten) => unlisten());
       unlistenUpdateAvailable.then((unlisten) => unlisten());
       unlistenExecutablesMissing.then((unlisten) => unlisten());
+      unlistenHistoryComplete.then((unlisten) => unlisten());
     };
-  }, []);
+  }, [url, format, quality, outputFolder, mediaInfo, preferences, addToHistory]);
 
   // Fetch media info when URL changes (with debounce)
   const fetchMediaInfo = useCallback(async (urlToFetch: string) => {
@@ -288,10 +338,39 @@ function App() {
     }
   }, [downloadState]);
 
+  // Check if URL is a playlist
+  const checkPlaylist = useCallback(async (urlToCheck: string) => {
+    try {
+      const isPlaylistUrl = await invoke<boolean>("check_is_playlist", { url: urlToCheck });
+      setIsPlaylist(isPlaylistUrl);
+      if (isPlaylistUrl) {
+        // Auto-fetch playlist info
+        setIsLoadingPlaylist(true);
+        try {
+          const info = await invoke<PlaylistInfo>("fetch_playlist_info", { url: urlToCheck });
+          setPlaylistInfo(info);
+        } catch (err) {
+          console.error("Failed to fetch playlist info:", err);
+          setPlaylistInfo(null);
+        } finally {
+          setIsLoadingPlaylist(false);
+        }
+      } else {
+        setPlaylistInfo(null);
+      }
+    } catch (err) {
+      console.error("Failed to check playlist:", err);
+      setIsPlaylist(false);
+      setPlaylistInfo(null);
+    }
+  }, []);
+
   // Handle URL change with media info fetch (proper debounce with cleanup)
   const handleUrlChange = useCallback((newUrl: string) => {
     setUrl(newUrl);
     setMediaInfo(null);
+    setIsPlaylist(false);
+    setPlaylistInfo(null);
     
     // Clear any existing debounce timeout
     if (debounceTimeoutRef.current) {
@@ -299,15 +378,18 @@ function App() {
       debounceTimeoutRef.current = null;
     }
     
-    // Debounce media info fetch
+    // Debounce media info fetch and playlist check
     const trimmedUrl = newUrl.trim();
     if (trimmedUrl && validateUrl(trimmedUrl).isValid) {
       debounceTimeoutRef.current = setTimeout(() => {
+        // Check if it's a playlist first
+        checkPlaylist(trimmedUrl);
+        // Also fetch single video info (will be used if not a playlist)
         fetchMediaInfo(trimmedUrl);
         debounceTimeoutRef.current = null;
       }, 500);
     }
-  }, [fetchMediaInfo]);
+  }, [fetchMediaInfo, checkPlaylist]);
   
   // Cleanup debounce timeout on unmount
   useEffect(() => {
@@ -381,6 +463,31 @@ function App() {
     }
   }, []);
 
+  // Handle playlist download - add selected videos to queue
+  const handlePlaylistDownload = useCallback(async (
+    entries: PlaylistEntry[],
+    config: Omit<DownloadConfig, 'url'>
+  ) => {
+    for (const entry of entries) {
+      const downloadConfig: DownloadConfig = {
+        ...config,
+        url: entry.url,
+      };
+      try {
+        await addToQueue(downloadConfig);
+      } catch (err) {
+        console.error(`Failed to add ${entry.title} to queue:`, err);
+      }
+    }
+    // Clear URL after adding to queue
+    setUrl("");
+    setMediaInfo(null);
+    setIsPlaylist(false);
+    setPlaylistInfo(null);
+    // Open queue panel to show progress
+    setIsQueueOpen(true);
+  }, [addToQueue]);
+
   return (
     <motion.main
       className="min-h-screen bg-background"
@@ -397,6 +504,24 @@ function App() {
           <h1 className="text-xl font-semibold text-foreground">MediaGrab</h1>
           <nav className="flex items-center gap-2" aria-label="Application controls">
             <ThemeToggle />
+            {/* History button */}
+            <motion.div
+              variants={buttonVariants}
+              whileHover="hover"
+              whileTap="tap"
+              transition={springTransition}
+            >
+              <Button 
+                variant="ghost" 
+                size="icon" 
+                title="Download History"
+                aria-label="Open download history"
+                aria-haspopup="dialog"
+                onClick={() => setIsHistoryOpen(true)}
+              >
+                <History className="h-4 w-4" aria-hidden="true" />
+              </Button>
+            </motion.div>
             {/* Queue button */}
             <motion.div
               variants={buttonVariants}
@@ -484,12 +609,46 @@ function App() {
           </motion.div>
 
           {/* Media Info Preview */}
-          {(mediaInfo || isLoadingMediaInfo) && (
+          {(mediaInfo || isLoadingMediaInfo) && !isPlaylist && (
             <motion.div variants={itemVariants}>
               <MediaInfoPreview 
                 mediaInfo={mediaInfo} 
                 isLoading={isLoadingMediaInfo} 
               />
+            </motion.div>
+          )}
+
+          {/* Playlist Detected Banner */}
+          {isPlaylist && (
+            <motion.div 
+              variants={itemVariants}
+              className="rounded-lg border border-primary/30 bg-primary/5 p-4"
+            >
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <ListVideo className="h-5 w-5 text-primary" />
+                  <div>
+                    <p className="font-medium">Playlist Algılandı</p>
+                    {playlistInfo && (
+                      <p className="text-sm text-muted-foreground">
+                        {playlistInfo.title} • {playlistInfo.videoCount} video
+                      </p>
+                    )}
+                    {isLoadingPlaylist && (
+                      <p className="text-sm text-muted-foreground">Yükleniyor...</p>
+                    )}
+                  </div>
+                </div>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setIsPlaylistOpen(true)}
+                  disabled={isLoadingPlaylist || !playlistInfo}
+                >
+                  <ListVideo className="mr-2 h-4 w-4" />
+                  Videoları Göster
+                </Button>
+              </div>
             </motion.div>
           )}
 
@@ -703,6 +862,34 @@ function App() {
       <QueuePanel
         isOpen={isQueueOpen}
         onClose={() => setIsQueueOpen(false)}
+      />
+
+      {/* History Panel */}
+      <HistoryPanel
+        isOpen={isHistoryOpen}
+        onClose={() => setIsHistoryOpen(false)}
+        onRedownload={(config) => {
+          setUrl(config.url);
+          setFormat(config.format);
+          setQuality(config.quality);
+          if (config.outputFolder) {
+            setOutputFolder(config.outputFolder);
+          }
+        }}
+      />
+
+      {/* Playlist Panel */}
+      <PlaylistPanel
+        isOpen={isPlaylistOpen}
+        onClose={() => setIsPlaylistOpen(false)}
+        playlistInfo={playlistInfo}
+        isLoading={isLoadingPlaylist}
+        onDownloadSelected={handlePlaylistDownload}
+        format={format}
+        quality={quality}
+        outputFolder={outputFolder}
+        embedSubtitles={preferences?.embedSubtitles ?? false}
+        cookiesFromBrowser={preferences?.cookiesFromBrowser ?? null}
       />
 
       {/* Missing Executables Alert */}

@@ -16,7 +16,18 @@ export type DownloadState =
   | 'failed';
 
 // Format options - matches Rust format handling
-export type Format = 'video-mp4' | 'audio-mp3' | 'audio-best';
+export type Format = 
+  // Video formats
+  | 'video-mp4' 
+  | 'video-webm' 
+  | 'video-mkv'
+  // Audio formats  
+  | 'audio-mp3' 
+  | 'audio-best'
+  | 'audio-flac'
+  | 'audio-wav'
+  | 'audio-aac'
+  | 'audio-opus';
 
 // Quality options - matches Rust quality handling
 export type Quality = 'best' | '1080p' | '720p';
@@ -66,6 +77,9 @@ export interface Preferences {
   embedSubtitles: boolean;
   cookiesFromBrowser: string | null;
   checkUpdatesOnStartup: boolean;
+  // Proxy settings
+  proxyEnabled: boolean;
+  proxyUrl: string | null; // e.g., "http://127.0.0.1:8080" or "socks5://127.0.0.1:1080"
 }
 
 // Disk space information from backend
@@ -174,3 +188,89 @@ export type QueueEvent =
   | { type: 'itemUpdated'; item: QueueItem }
   | { type: 'itemRemoved'; id: number }
   | { type: 'queueCleared' };
+
+
+// ============================================
+// History System Types
+// ============================================
+
+// History item - a completed download record
+export interface HistoryItem {
+  id: string;
+  url: string;
+  title: string;
+  thumbnail: string | null;
+  format: string;
+  quality: string;
+  filePath: string | null;
+  fileSize: number | null;
+  duration: number | null;
+  downloadedAt: number; // Unix timestamp
+  status: 'completed' | 'failed';
+  error: string | null;
+}
+
+// Download statistics
+export interface DownloadStats {
+  totalDownloads: number;
+  successfulDownloads: number;
+  failedDownloads: number;
+  totalBytesDownloaded: number;
+  totalDurationSeconds: number;
+}
+
+
+// ============================================
+// Playlist System Types
+// ============================================
+
+// A single video entry in a playlist
+export interface PlaylistEntry {
+  id: string;
+  title: string;
+  url: string;
+  thumbnail: string | null;
+  duration: number | null;
+  playlistIndex: number;
+  uploader: string | null;
+}
+
+// Playlist information
+export interface PlaylistInfo {
+  id: string;
+  title: string;
+  url: string;
+  thumbnail: string | null;
+  uploader: string | null;
+  videoCount: number;
+  entries: PlaylistEntry[];
+}
+
+
+// ============================================
+// Subtitle System Types
+// ============================================
+
+// A single subtitle track
+export interface SubtitleTrack {
+  langCode: string;
+  langName: string;
+  isAutomatic: boolean;
+  formats: string[];
+}
+
+// Subtitle information for a video
+export interface SubtitleInfo {
+  subtitles: SubtitleTrack[];
+  automaticCaptions: SubtitleTrack[];
+  hasSubtitles: boolean;
+}
+
+// Subtitle download options
+export interface SubtitleOptions {
+  downloadSubtitles: boolean;
+  embedSubtitles: boolean;
+  languages: string[];
+  format: 'srt' | 'vtt' | 'ass';
+  includeAuto: boolean;
+}

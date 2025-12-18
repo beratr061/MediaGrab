@@ -12,8 +12,11 @@ use commands::folder::{
     check_disk_space, check_folder_accessible, open_file, open_folder, pick_folder,
     validate_folder_for_download,
 };
+use commands::history::{history_add, history_clear, history_get_all, history_get_stats, history_remove};
 use commands::media_info::fetch_media_info;
+use commands::playlist::{check_is_playlist, fetch_playlist_info};
 use commands::preferences::{load_preferences, save_preferences};
+use commands::subtitles::fetch_subtitles;
 use commands::queue::{
     queue_add, queue_cancel, queue_clear_completed, queue_get_all, queue_move_down, queue_move_up,
     queue_remove, setup_queue_events, start_queue_processor,
@@ -286,7 +289,18 @@ pub fn run() {
             queue_remove,
             queue_clear_completed,
             queue_move_up,
-            queue_move_down
+            queue_move_down,
+            // History commands
+            history_add,
+            history_get_all,
+            history_get_stats,
+            history_remove,
+            history_clear,
+            // Playlist commands
+            check_is_playlist,
+            fetch_playlist_info,
+            // Subtitle commands
+            fetch_subtitles
         ])
         .on_window_event(|window, event| {
             // Handle window close - minimize to tray instead of closing

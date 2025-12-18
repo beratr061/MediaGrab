@@ -3,9 +3,17 @@ import { Select, type SelectOption } from "./ui/select";
 import type { Format } from "@/types";
 
 const formatOptions: SelectOption<Format>[] = [
+  // Video formats
   { value: "video-mp4", label: "Video (MP4)", icon: <Video className="h-4 w-4" /> },
+  { value: "video-webm", label: "Video (WebM)", icon: <Video className="h-4 w-4" /> },
+  { value: "video-mkv", label: "Video (MKV)", icon: <Video className="h-4 w-4" /> },
+  // Audio formats
   { value: "audio-mp3", label: "Audio (MP3)", icon: <Music className="h-4 w-4" /> },
-  { value: "audio-best", label: "Audio (Best)", icon: <Music className="h-4 w-4" /> },
+  { value: "audio-aac", label: "Audio (AAC)", icon: <Music className="h-4 w-4" /> },
+  { value: "audio-opus", label: "Audio (Opus)", icon: <Music className="h-4 w-4" /> },
+  { value: "audio-flac", label: "Audio (FLAC)", icon: <Music className="h-4 w-4" /> },
+  { value: "audio-wav", label: "Audio (WAV)", icon: <Music className="h-4 w-4" /> },
+  { value: "audio-best", label: "Audio (Original)", icon: <Music className="h-4 w-4" /> },
 ];
 
 interface FormatSelectorProps {

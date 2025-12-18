@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { X, Settings, Cookie } from "lucide-react";
+import { X, Settings, Cookie, Subtitles, Globe, ChevronDown, ChevronRight, Shield } from "lucide-react";
 import { invoke } from "@tauri-apps/api/core";
 import { Button } from "./ui/button";
 import { Select, type SelectOption } from "./ui/select";
@@ -11,10 +11,9 @@ import type { Preferences } from "@/types";
 
 /**
  * Supported browsers for cookie import
- * Requirements: 13.1, 13.3 - Support Chrome, Firefox, Edge, Brave, and other Chromium-based browsers
  */
 const SUPPORTED_BROWSERS: SelectOption[] = [
-  { value: "", label: "None (disabled)" },
+  { value: "", label: "Devre dışı" },
   { value: "chrome", label: "Google Chrome" },
   { value: "firefox", label: "Mozilla Firefox" },
   { value: "edge", label: "Microsoft Edge" },
@@ -31,11 +30,6 @@ interface SettingsPanelProps {
   onPreferencesChange: (prefs: Preferences) => void;
 }
 
-/**
- * Settings panel component with yt-dlp update controls
- * 
- * **Validates: Requirements 7.6, 7.7**
- */
 export function SettingsPanel({ 
   isOpen, 
   onClose, 
@@ -46,8 +40,20 @@ export function SettingsPanel({
   const [checkUpdatesOnStartup, setCheckUpdatesOnStartup] = useState(
     preferences?.checkUpdatesOnStartup ?? true
   );
+  const [embedSubtitles, setEmbedSubtitles] = useState(
+    preferences?.embedSubtitles ?? false
+  );
+  
+  // Advanced settings
+  const [showAdvanced, setShowAdvanced] = useState(false);
   const [cookiesFromBrowser, setCookiesFromBrowser] = useState<string>(
     preferences?.cookiesFromBrowser ?? ""
+  );
+  const [proxyEnabled, setProxyEnabled] = useState(
+    preferences?.proxyEnabled ?? false
+  );
+  const [proxyUrl, setProxyUrl] = useState(
+    preferences?.proxyUrl ?? ""
   );
 
   // Fetch yt-dlp version on mount
@@ -63,56 +69,56 @@ export function SettingsPanel({
   useEffect(() => {
     if (preferences) {
       setCheckUpdatesOnStartup(preferences.checkUpdatesOnStartup);
+      setEmbedSubtitles(preferences.embedSubtitles);
       setCookiesFromBrowser(preferences.cookiesFromBrowser ?? "");
+      setProxyEnabled(preferences.proxyEnabled ?? false);
+      setProxyUrl(preferences.proxyUrl ?? "");
     }
   }, [preferences]);
 
-  const handleCheckUpdatesToggle = useCallback(async () => {
+  const savePreference = useCallback(async <K extends keyof Preferences>(
+    key: K,
+    value: Preferences[K]
+  ) => {
+    if (!preferences) return;
+    
+    const updatedPrefs = { ...preferences, [key]: value };
+    
+    try {
+      await invoke("save_preferences", { preferences: updatedPrefs });
+      onPreferencesChange(updatedPrefs);
+    } catch (err) {
+      console.error("Failed to save preferences:", err);
+    }
+  }, [preferences, onPreferencesChange]);
+
+  const handleCheckUpdatesToggle = useCallback(() => {
     const newValue = !checkUpdatesOnStartup;
     setCheckUpdatesOnStartup(newValue);
-    
-    if (preferences) {
-      const updatedPrefs = {
-        ...preferences,
-        checkUpdatesOnStartup: newValue,
-      };
-      
-      try {
-        await invoke("save_preferences", { preferences: updatedPrefs });
-        onPreferencesChange(updatedPrefs);
-      } catch (err) {
-        console.error("Failed to save preferences:", err);
-        // Revert on error
-        setCheckUpdatesOnStartup(!newValue);
-      }
-    }
-  }, [checkUpdatesOnStartup, preferences, onPreferencesChange]);
+    savePreference("checkUpdatesOnStartup", newValue);
+  }, [checkUpdatesOnStartup, savePreference]);
 
-  /**
-   * Handle browser cookie selection change
-   * Requirements: 13.1 - Use --cookies-from-browser flag with selected browser
-   */
-  const handleCookieBrowserChange = useCallback(async (value: string) => {
-    const previousValue = cookiesFromBrowser;
-    const newValue = value || null; // Convert empty string to null
+  const handleEmbedSubtitlesToggle = useCallback(() => {
+    const newValue = !embedSubtitles;
+    setEmbedSubtitles(newValue);
+    savePreference("embedSubtitles", newValue);
+  }, [embedSubtitles, savePreference]);
+
+  const handleCookieBrowserChange = useCallback((value: string) => {
     setCookiesFromBrowser(value);
-    
-    if (preferences) {
-      const updatedPrefs = {
-        ...preferences,
-        cookiesFromBrowser: newValue,
-      };
-      
-      try {
-        await invoke("save_preferences", { preferences: updatedPrefs });
-        onPreferencesChange(updatedPrefs);
-      } catch (err) {
-        console.error("Failed to save preferences:", err);
-        // Revert on error
-        setCookiesFromBrowser(previousValue);
-      }
-    }
-  }, [cookiesFromBrowser, preferences, onPreferencesChange]);
+    savePreference("cookiesFromBrowser", value || null);
+  }, [savePreference]);
+
+  const handleProxyToggle = useCallback(() => {
+    const newValue = !proxyEnabled;
+    setProxyEnabled(newValue);
+    savePreference("proxyEnabled", newValue);
+  }, [proxyEnabled, savePreference]);
+
+  const handleProxyUrlChange = useCallback((value: string) => {
+    setProxyUrl(value);
+    savePreference("proxyUrl", value || null);
+  }, [savePreference]);
 
   return (
     <AnimatePresence>
@@ -129,17 +135,17 @@ export function SettingsPanel({
           
           {/* Panel */}
           <motion.div
-            className="fixed right-0 top-0 bottom-0 w-80 bg-background border-l border-border shadow-lg z-50 overflow-y-auto"
+            className="fixed right-0 top-0 bottom-0 w-96 bg-background border-l border-border shadow-lg z-50 overflow-y-auto"
             initial={{ x: "100%" }}
             animate={{ x: 0 }}
             exit={{ x: "100%" }}
             transition={{ type: "spring", damping: 25, stiffness: 300 }}
           >
             {/* Header */}
-            <div className="flex items-center justify-between p-4 border-b border-border">
+            <div className="flex items-center justify-between p-4 border-b border-border sticky top-0 bg-background z-10">
               <div className="flex items-center gap-2">
                 <Settings className="h-5 w-5" />
-                <h2 className="text-lg font-semibold">Settings</h2>
+                <h2 className="text-lg font-semibold">Ayarlar</h2>
               </div>
               <motion.div
                 variants={buttonVariants}
@@ -162,45 +168,23 @@ export function SettingsPanel({
                 animate="animate"
                 transition={defaultTransition}
               >
-                <h3 className="text-sm font-medium mb-3">yt-dlp Updates</h3>
+                <h3 className="text-sm font-medium mb-3">yt-dlp Güncellemeleri</h3>
                 
                 <div className="space-y-4">
-                  {/* Update Button */}
                   <UpdateButton currentVersion={ytdlpVersion || undefined} />
                   
-                  {/* Auto-check toggle */}
-                  <div className="flex items-center justify-between">
-                    <label 
-                      htmlFor="check-updates" 
-                      className="text-sm text-muted-foreground cursor-pointer"
-                    >
-                      Check for updates on startup
-                    </label>
-                    <button
-                      id="check-updates"
-                      role="switch"
-                      aria-checked={checkUpdatesOnStartup}
-                      onClick={handleCheckUpdatesToggle}
-                      className={`
-                        relative inline-flex h-5 w-9 items-center rounded-full transition-colors
-                        ${checkUpdatesOnStartup ? 'bg-primary' : 'bg-muted'}
-                      `}
-                    >
-                      <span
-                        className={`
-                          inline-block h-4 w-4 transform rounded-full bg-background transition-transform
-                          ${checkUpdatesOnStartup ? 'translate-x-4' : 'translate-x-0.5'}
-                        `}
-                      />
-                    </button>
-                  </div>
+                  <ToggleSwitch
+                    id="check-updates"
+                    label="Başlangıçta güncelleme kontrolü"
+                    checked={checkUpdatesOnStartup}
+                    onChange={handleCheckUpdatesToggle}
+                  />
                 </div>
               </motion.section>
               
-              {/* Divider */}
               <hr className="border-border" />
               
-              {/* Cookie Authentication Section */}
+              {/* Subtitle Section */}
               <motion.section
                 variants={fadeInVariants}
                 initial="initial"
@@ -208,41 +192,135 @@ export function SettingsPanel({
                 transition={{ ...defaultTransition, delay: 0.1 }}
               >
                 <div className="flex items-center gap-2 mb-3">
-                  <Cookie className="h-4 w-4" />
-                  <h3 className="text-sm font-medium">Cookie Authentication</h3>
+                  <Subtitles className="h-4 w-4" />
+                  <h3 className="text-sm font-medium">Altyazı Ayarları</h3>
                 </div>
                 
                 <div className="space-y-3">
-                  <p className="text-xs text-muted-foreground">
-                    Import cookies from your browser to access private, age-restricted, 
-                    or subscription content you have legitimate access to.
-                  </p>
+                  <ToggleSwitch
+                    id="embed-subtitles"
+                    label="Altyazıları videoya göm"
+                    checked={embedSubtitles}
+                    onChange={handleEmbedSubtitlesToggle}
+                  />
                   
-                  <div className="space-y-2">
-                    <label 
-                      htmlFor="cookie-browser" 
-                      className="text-sm text-muted-foreground"
-                    >
-                      Import cookies from
-                    </label>
-                    <Select
-                      value={cookiesFromBrowser}
-                      onChange={handleCookieBrowserChange}
-                      options={SUPPORTED_BROWSERS}
-                      placeholder="Select browser..."
-                    />
-                  </div>
-                  
-                  {cookiesFromBrowser && (
+                  {embedSubtitles && (
                     <p className="text-xs text-muted-foreground bg-muted/50 rounded p-2">
-                      ⚠️ Make sure the selected browser is closed before downloading 
-                      to avoid cookie access issues.
+                      ℹ️ Tüm mevcut altyazılar videoya gömülecektir.
                     </p>
                   )}
                 </div>
               </motion.section>
               
-              {/* Divider */}
+              <hr className="border-border" />
+              
+              {/* Advanced Settings Section */}
+              <motion.section
+                variants={fadeInVariants}
+                initial="initial"
+                animate="animate"
+                transition={{ ...defaultTransition, delay: 0.15 }}
+              >
+                <button
+                  onClick={() => setShowAdvanced(!showAdvanced)}
+                  className="flex items-center justify-between w-full text-left"
+                >
+                  <div className="flex items-center gap-2">
+                    <Shield className="h-4 w-4" />
+                    <h3 className="text-sm font-medium">Gelişmiş Ayarlar</h3>
+                  </div>
+                  {showAdvanced ? (
+                    <ChevronDown className="h-4 w-4 text-muted-foreground" />
+                  ) : (
+                    <ChevronRight className="h-4 w-4 text-muted-foreground" />
+                  )}
+                </button>
+                
+                <AnimatePresence>
+                  {showAdvanced && (
+                    <motion.div
+                      initial={{ height: 0, opacity: 0 }}
+                      animate={{ height: "auto", opacity: 1 }}
+                      exit={{ height: 0, opacity: 0 }}
+                      transition={{ duration: 0.2 }}
+                      className="overflow-hidden"
+                    >
+                      <div className="pt-4 space-y-6">
+                        {/* Cookie Authentication */}
+                        <div className="space-y-3">
+                          <div className="flex items-center gap-2">
+                            <Cookie className="h-4 w-4 text-muted-foreground" />
+                            <span className="text-sm font-medium">Çerez Kimlik Doğrulama</span>
+                          </div>
+                          
+                          <p className="text-xs text-muted-foreground">
+                            Özel, yaş kısıtlamalı veya abonelik içeriklerine erişmek için 
+                            tarayıcınızdan çerezleri içe aktarın.
+                          </p>
+                          
+                          <div className="space-y-2">
+                            <label className="text-sm text-muted-foreground">
+                              Çerezleri içe aktar
+                            </label>
+                            <Select
+                              value={cookiesFromBrowser}
+                              onChange={handleCookieBrowserChange}
+                              options={SUPPORTED_BROWSERS}
+                              placeholder="Tarayıcı seçin..."
+                            />
+                          </div>
+                          
+                          {cookiesFromBrowser && (
+                            <p className="text-xs text-muted-foreground bg-amber-500/10 border border-amber-500/20 rounded p-2">
+                              ⚠️ İndirmeden önce seçili tarayıcının kapalı olduğundan emin olun.
+                            </p>
+                          )}
+                        </div>
+                        
+                        <hr className="border-border" />
+                        
+                        {/* Proxy Settings */}
+                        <div className="space-y-3">
+                          <div className="flex items-center gap-2">
+                            <Globe className="h-4 w-4 text-muted-foreground" />
+                            <span className="text-sm font-medium">Proxy Ayarları</span>
+                          </div>
+                          
+                          <p className="text-xs text-muted-foreground">
+                            Bölge kısıtlamalarını aşmak veya gizlilik için proxy kullanın.
+                          </p>
+                          
+                          <ToggleSwitch
+                            id="proxy-enabled"
+                            label="Proxy kullan"
+                            checked={proxyEnabled}
+                            onChange={handleProxyToggle}
+                          />
+                          
+                          {proxyEnabled && (
+                            <div className="space-y-2">
+                              <label className="text-sm text-muted-foreground">
+                                Proxy URL
+                              </label>
+                              <input
+                                type="text"
+                                value={proxyUrl}
+                                onChange={(e) => handleProxyUrlChange(e.target.value)}
+                                placeholder="http://127.0.0.1:8080 veya socks5://127.0.0.1:1080"
+                                className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ring"
+                              />
+                              <p className="text-xs text-muted-foreground">
+                                Desteklenen formatlar: http://, https://, socks4://, socks5://
+                              </p>
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    </motion.div>
+                  )}
+                </AnimatePresence>
+              </motion.section>
+              
               <hr className="border-border" />
               
               {/* Debug Section */}
@@ -252,16 +330,15 @@ export function SettingsPanel({
                 animate="animate"
                 transition={{ ...defaultTransition, delay: 0.2 }}
               >
-                <h3 className="text-sm font-medium mb-3">Troubleshooting</h3>
+                <h3 className="text-sm font-medium mb-3">Sorun Giderme</h3>
                 <div className="space-y-3">
                   <p className="text-xs text-muted-foreground">
-                    Copy debug information to share when reporting issues.
+                    Sorun bildirirken paylaşmak için hata ayıklama bilgilerini kopyalayın.
                   </p>
                   <CopyDebugInfoButton />
                 </div>
               </motion.section>
               
-              {/* Divider */}
               <hr className="border-border" />
               
               {/* About Section */}
@@ -269,9 +346,9 @@ export function SettingsPanel({
                 variants={fadeInVariants}
                 initial="initial"
                 animate="animate"
-                transition={{ ...defaultTransition, delay: 0.3 }}
+                transition={{ ...defaultTransition, delay: 0.25 }}
               >
-                <h3 className="text-sm font-medium mb-3">About</h3>
+                <h3 className="text-sm font-medium mb-3">Hakkında</h3>
                 <div className="text-xs text-muted-foreground space-y-1">
                   <p>MediaGrab - Media Downloader</p>
                   {ytdlpVersion && <p>yt-dlp: {ytdlpVersion}</p>}
@@ -282,5 +359,43 @@ export function SettingsPanel({
         </>
       )}
     </AnimatePresence>
+  );
+}
+
+// Toggle Switch Component
+interface ToggleSwitchProps {
+  id: string;
+  label: string;
+  checked: boolean;
+  onChange: () => void;
+}
+
+function ToggleSwitch({ id, label, checked, onChange }: ToggleSwitchProps) {
+  return (
+    <div className="flex items-center justify-between">
+      <label 
+        htmlFor={id} 
+        className="text-sm text-muted-foreground cursor-pointer"
+      >
+        {label}
+      </label>
+      <button
+        id={id}
+        role="switch"
+        aria-checked={checked}
+        onClick={onChange}
+        className={`
+          relative inline-flex h-5 w-9 items-center rounded-full transition-colors
+          ${checked ? 'bg-primary' : 'bg-muted'}
+        `}
+      >
+        <span
+          className={`
+            inline-block h-4 w-4 transform rounded-full bg-background transition-transform
+            ${checked ? 'translate-x-4' : 'translate-x-0.5'}
+          `}
+        />
+      </button>
+    </div>
   );
 }

@@ -24,6 +24,12 @@ pub struct Preferences {
     /// Whether to check for yt-dlp updates on startup
     #[serde(default = "default_check_updates")]
     pub check_updates_on_startup: bool,
+    /// Whether proxy is enabled
+    #[serde(default)]
+    pub proxy_enabled: bool,
+    /// Proxy URL (e.g., "http://127.0.0.1:8080" or "socks5://127.0.0.1:1080")
+    #[serde(default)]
+    pub proxy_url: Option<String>,
 }
 
 fn default_check_updates() -> bool {
@@ -39,6 +45,8 @@ impl Default for Preferences {
             embed_subtitles: false,
             cookies_from_browser: None,
             check_updates_on_startup: true,
+            proxy_enabled: false,
+            proxy_url: None,
         }
     }
 }
