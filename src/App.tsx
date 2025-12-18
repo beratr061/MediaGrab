@@ -1,6 +1,6 @@
 import { useState, useCallback, useEffect, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Settings, Bell } from "lucide-react";
+import { Settings, Bell, ListOrdered } from "lucide-react";
 import { invoke } from "@tauri-apps/api/core";
 import { listen } from "@tauri-apps/api/event";
 import { UrlInput } from "./components/UrlInput";
@@ -16,10 +16,12 @@ import { ThemeToggle } from "./components/ThemeToggle";
 import { OpenFolderButton } from "./components/OpenFolderButton";
 import { PlayButton } from "./components/PlayButton";
 import { SettingsPanel } from "./components/SettingsPanel";
+import { QueuePanel } from "./components/QueuePanel";
 import { MissingExecutablesAlert } from "./components/MissingExecutablesAlert";
 import { Button } from "./components/ui/button";
 import { useKeyboardShortcuts } from "./hooks/useKeyboardShortcuts";
 import { usePreferences } from "./hooks/usePreferences";
+import { useQueue } from "./hooks/useQueue";
 import { validateUrl } from "./lib/validation";
 import {
   fadeInVariants,
@@ -50,6 +52,7 @@ function App() {
 
   // Settings state
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
+  const [isQueueOpen, setIsQueueOpen] = useState(false);
   const { 
     preferences, 
     setPreferences,
@@ -57,6 +60,9 @@ function App() {
     setFormat: saveFormat,
     setQuality: saveQuality,
   } = usePreferences();
+  
+  // Queue hook
+  const { addToQueue, activeCount, pendingCount } = useQueue();
   
   // Track if preferences have been applied to form state
   const preferencesAppliedRef = useRef(false);
@@ -391,6 +397,36 @@ function App() {
           <h1 className="text-xl font-semibold text-foreground">MediaGrab</h1>
           <nav className="flex items-center gap-2" aria-label="Application controls">
             <ThemeToggle />
+            {/* Queue button */}
+            <motion.div
+              variants={buttonVariants}
+              whileHover="hover"
+              whileTap="tap"
+              transition={springTransition}
+              className="relative"
+            >
+              <Button 
+                variant="ghost" 
+                size="icon" 
+                title="Download Queue"
+                aria-label="Open download queue"
+                aria-haspopup="dialog"
+                onClick={() => setIsQueueOpen(true)}
+              >
+                <ListOrdered className="h-4 w-4" aria-hidden="true" />
+              </Button>
+              {/* Active downloads indicator */}
+              {(activeCount > 0 || pendingCount > 0) && (
+                <span 
+                  className="absolute -top-1 -right-1 flex h-4 w-4 items-center justify-center rounded-full bg-primary text-[10px] font-medium text-primary-foreground" 
+                  aria-label={`${activeCount + pendingCount} downloads in queue`}
+                  role="status"
+                >
+                  {activeCount + pendingCount}
+                </span>
+              )}
+            </motion.div>
+            {/* Settings button */}
             <motion.div
               variants={buttonVariants}
               whileHover="hover"
@@ -512,6 +548,31 @@ function App() {
               state={downloadState}
               disabled={!validateUrl(url).isValid}
             />
+            <Button
+              variant="outline"
+              onClick={async () => {
+                const validation = validateUrl(url);
+                if (!validation.isValid) return;
+                
+                const config: DownloadConfig = {
+                  url: url.trim(),
+                  format,
+                  quality,
+                  outputFolder: outputFolder || "",
+                  embedSubtitles: preferences?.embedSubtitles ?? false,
+                  cookiesFromBrowser: preferences?.cookiesFromBrowser ?? null,
+                };
+                
+                await addToQueue(config);
+                setUrl("");
+                setMediaInfo(null);
+              }}
+              disabled={!validateUrl(url).isValid || isDownloading}
+              aria-label="Add to download queue"
+            >
+              <ListOrdered className="mr-2 h-4 w-4" aria-hidden="true" />
+              Add to Queue
+            </Button>
             <CancelButton onClick={handleCancel} state={downloadState} />
           </motion.div>
 
@@ -636,6 +697,12 @@ function App() {
         onClose={() => setIsSettingsOpen(false)}
         preferences={preferences}
         onPreferencesChange={setPreferences}
+      />
+
+      {/* Queue Panel */}
+      <QueuePanel
+        isOpen={isQueueOpen}
+        onClose={() => setIsQueueOpen(false)}
       />
 
       {/* Missing Executables Alert */}

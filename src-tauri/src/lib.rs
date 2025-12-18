@@ -5,14 +5,21 @@ pub mod download;
 pub mod models;
 pub mod utils;
 
+use commands::debug::{copy_debug_info, get_recent_logs};
 use commands::download::{cancel_download, get_download_state, reset_download, start_download};
 use commands::executables::{check_executables, get_executable_paths};
-use commands::folder::{check_disk_space, check_folder_accessible, open_file, open_folder, pick_folder, validate_folder_for_download};
+use commands::folder::{
+    check_disk_space, check_folder_accessible, open_file, open_folder, pick_folder,
+    validate_folder_for_download,
+};
 use commands::media_info::fetch_media_info;
 use commands::preferences::{load_preferences, save_preferences};
+use commands::queue::{
+    queue_add, queue_cancel, queue_clear_completed, queue_get_all, queue_move_down, queue_move_up,
+    queue_remove, setup_queue_events, start_queue_processor,
+};
 use commands::update::{check_ytdlp_update, get_ytdlp_version_cmd, update_ytdlp};
-use commands::debug::{copy_debug_info, get_recent_logs};
-use download::{create_download_manager, SharedDownloadManager};
+use download::{create_download_manager, create_download_queue, SharedDownloadManager};
 use tauri::{
     menu::{Menu, MenuItem},
     tray::{MouseButton, MouseButtonState, TrayIconBuilder, TrayIconEvent},
@@ -204,7 +211,14 @@ pub fn run() {
     
     let download_manager = create_download_manager();
     let manager_for_exit = download_manager.clone();
-    
+
+    // Create queue event channel
+    let (queue_event_tx, queue_event_rx) = tokio::sync::mpsc::unbounded_channel();
+
+    // Create download queue with max 3 concurrent downloads
+    let download_queue = create_download_queue(3, queue_event_tx);
+    let queue_for_processor = download_queue.clone();
+
     tauri::Builder::default()
         .plugin(tauri_plugin_opener::init())
         .plugin(tauri_plugin_store::Builder::new().build())
@@ -213,23 +227,34 @@ pub fn run() {
         .plugin(tauri_plugin_shell::init())
         .plugin(tauri_plugin_clipboard_manager::init())
         .manage(download_manager)
-        .setup(|app| {
+        .manage(download_queue)
+        .setup(move |app| {
             // Set up system tray
             setup_system_tray(app)?;
-            
+
+            // Set up queue event forwarding to frontend
+            let app_handle_queue = app.handle().clone();
+            setup_queue_events(app_handle_queue, queue_event_rx);
+
+            // Start queue processor
+            let app_handle_processor = app.handle().clone();
+            tauri::async_runtime::spawn(async move {
+                start_queue_processor(app_handle_processor, queue_for_processor).await;
+            });
+
             // Spawn background executable check
             // **Validates: Requirements 6.1, 11.6**
             let app_handle_exec = app.handle().clone();
             tauri::async_runtime::spawn(async move {
                 check_executables_on_startup(app_handle_exec).await;
             });
-            
+
             // Spawn background update check
             let app_handle = app.handle().clone();
             tauri::async_runtime::spawn(async move {
                 check_for_updates_on_startup(app_handle).await;
             });
-            
+
             Ok(())
         })
         .invoke_handler(tauri::generate_handler![
@@ -253,7 +278,15 @@ pub fn run() {
             copy_debug_info,
             get_recent_logs,
             check_executables,
-            get_executable_paths
+            get_executable_paths,
+            // Queue commands
+            queue_add,
+            queue_get_all,
+            queue_cancel,
+            queue_remove,
+            queue_clear_completed,
+            queue_move_up,
+            queue_move_down
         ])
         .on_window_event(|window, event| {
             // Handle window close - minimize to tray instead of closing

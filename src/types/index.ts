@@ -139,3 +139,38 @@ export interface ExecutablesMissingEvent {
   ffprobeAvailable: boolean;
   error: string;
 }
+
+
+// ============================================
+// Queue System Types
+// ============================================
+
+// Queue item status
+export type QueueItemStatus =
+  | 'pending'
+  | 'downloading'
+  | 'merging'
+  | 'completed'
+  | 'failed'
+  | 'cancelled';
+
+// Queue item
+export interface QueueItem {
+  id: number;
+  config: DownloadConfig;
+  status: QueueItemStatus;
+  progress: number;
+  speed: string;
+  etaSeconds: number | null;
+  error: string | null;
+  filePath: string | null;
+  title: string | null;
+  thumbnail: string | null;
+}
+
+// Queue event types
+export type QueueEvent =
+  | { type: 'itemAdded'; item: QueueItem }
+  | { type: 'itemUpdated'; item: QueueItem }
+  | { type: 'itemRemoved'; id: number }
+  | { type: 'queueCleared' };
