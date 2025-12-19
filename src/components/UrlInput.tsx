@@ -216,9 +216,9 @@ export function UrlInput({
       >
         {/* Icon */}
         {platform !== "unknown" ? (
-          <PlatformIcon platform={platform} size="sm" />
+          <PlatformIcon platform={platform} size="md" />
         ) : (
-          <Link className="h-4 w-4 shrink-0 text-muted-foreground" />
+          <Link className="h-5 w-5 shrink-0 text-muted-foreground" />
         )}
 
         {/* Input */}
