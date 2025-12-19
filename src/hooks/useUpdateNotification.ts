@@ -3,7 +3,7 @@
  */
 
 import { useState, useEffect, useCallback } from "react";
-import { listen } from "@tauri-apps/api/event";
+import { listen } from "@/lib/tauri";
 
 interface UpdateInfo {
   currentVersion: string;

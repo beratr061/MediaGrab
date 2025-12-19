@@ -42,7 +42,9 @@
     "copiedToClipboard": "Copied to clipboard",
     "settingsSaved": "Settings saved",
     "urlsAdded": "{{count}} URLs added",
-    "undoSuccess": "Undo successful"
+    "undoSuccess": "Undo successful",
+    "debugInfoCopied": "Debug info copied to clipboard",
+    "debugInfoFailed": "Failed to copy debug info"
   },
   "header": {
     "history": "Download History",
@@ -83,6 +85,7 @@
     "play": "Play",
     "openFolder": "Open Folder",
     "retry": "Retry Download",
+    "retryDownload": "Retry Download",
     "dismiss": "Dismiss",
     "update": "Update",
     "showVideos": "Show Videos",
@@ -146,7 +149,9 @@
   "mediaInfo": {
     "duration": "Duration",
     "uploader": "Uploader",
-    "size": "Size"
+    "size": "Size",
+    "unknownSize": "Unknown size",
+    "estimated": "Estimated: {{size}}"
   },
   "queue": {
     "title": "Download Queue",
@@ -191,7 +196,8 @@
       "download": "Download",
       "appearance": "Appearance",
       "advanced": "Advanced",
-      "about": "About"
+      "about": "About",
+      "label": "Settings tabs"
     },
     "general": "General",
     "resetToDefaults": "Reset to Defaults",
@@ -241,11 +247,19 @@
     },
     "filenameTemplate": "Filename Template",
     "filenameTemplateDescription": "Customize the output filename format. Leave empty for default.",
-    "availablePlaceholders": "Available placeholders"
+    "availablePlaceholders": "Available placeholders",
+    "bandwidthLimit": "Bandwidth Limit",
+    "bandwidthLimitDescription": "Limit download speed to save bandwidth",
+    "bandwidthUnlimited": "Unlimited",
+    "bandwidthCustom": "Custom (KB/s)",
+    "themeHighContrast": "High Contrast",
+    "debug": "Debug",
+    "version": "Version"
   },
   "update": {
     "available": "yt-dlp update available",
-    "version": "({{version}})"
+    "version": "({{version}})",
+    "failed": "Update failed"
   },
   "shortcuts": {
     "paste": "Paste",
@@ -285,5 +299,54 @@
     "downloaded": "Downloaded",
     "resuming": "Resuming download...",
     "resumed": "Download resumed"
+  },
+  "schedule": {
+    "title": "Schedule Downloads",
+    "addNew": "Add New Schedule",
+    "date": "Date",
+    "time": "Time",
+    "add": "Add to Schedule",
+    "upcoming": "Upcoming Downloads",
+    "empty": "No scheduled downloads",
+    "startingSoon": "Starting soon...",
+    "pause": "Pause",
+    "resume": "Resume"
+  },
+  "batch": {
+    "title": "Batch URL Import",
+    "dropFile": "Drop a .txt file here or click to browse",
+    "pasteUrls": "Or paste URLs (one per line)",
+    "validUrls": "{{count}} valid URLs",
+    "invalidUrls": "{{count}} invalid URLs",
+    "import": "Import {{count}} URLs"
+  },
+  "formatOptions": {
+    "bestAudio": "Best Audio"
+  },
+  "accessibility": {
+    "videoUrlInput": "Video URL input",
+    "showRecentUrls": "Show recent URLs",
+    "removeFromRecent": "Remove from recent",
+    "selectQuality": "Select video quality",
+    "selectFormat": "Select download format",
+    "browseFolder": "Browse for folder",
+    "selectedFolder": "Selected folder: {{path}}",
+    "noFolderSelected": "No folder selected",
+    "closeQueuePanel": "Close queue panel",
+    "moveUpInQueue": "Move up in queue",
+    "moveDownInQueue": "Move down in queue",
+    "cancelDownload": "Cancel download",
+    "removeFromQueue": "Remove from queue",
+    "tryAgain": "Try again",
+    "closeSettings": "Close settings",
+    "settingsTabs": "Settings tabs"
+  },
+  "folderPicker": {
+    "noFolderSelected": "No folder selected"
+  },
+  "copyDebugInfo": {
+    "button": "Copy Debug Info",
+    "copied": "Debug info copied to clipboard",
+    "failed": "Failed to copy debug info"
   }
 }

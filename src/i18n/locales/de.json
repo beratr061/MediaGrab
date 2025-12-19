@@ -218,5 +218,102 @@
     "downloaded": "Heruntergeladen",
     "resuming": "Download wird fortgesetzt...",
     "resumed": "Download fortgesetzt"
+  },
+  "schedule": {
+    "title": "Geplante Downloads",
+    "addNew": "Neuen Zeitplan hinzufügen",
+    "date": "Datum",
+    "time": "Uhrzeit",
+    "add": "Zum Zeitplan hinzufügen",
+    "upcoming": "Bevorstehende Downloads",
+    "empty": "Keine geplanten Downloads",
+    "startingSoon": "Startet bald...",
+    "pause": "Pausieren",
+    "resume": "Fortsetzen"
+  },
+  "batch": {
+    "title": "Massen-URL-Import",
+    "dropFile": ".txt-Datei hier ablegen oder klicken zum Durchsuchen",
+    "pasteUrls": "Oder URLs einfügen (eine pro Zeile)",
+    "validUrls": "{{count}} gültige URLs",
+    "invalidUrls": "{{count}} ungültige URLs",
+    "import": "{{count}} URLs importieren"
+  },
+  "formatOptions": {
+    "bestAudio": "Beste Audio"
+  },
+  "emptyState": {
+    "title": "Bereit zum Herunterladen",
+    "description": "Fügen Sie eine Video-URL ein, um zu beginnen",
+    "supportedPlatforms": "Unterstützte Plattformen",
+    "pasteHint": "zum Einfügen"
+  },
+  "toast": {
+    "downloadComplete": "Download abgeschlossen",
+    "downloadFailed": "Download fehlgeschlagen",
+    "addedToQueue": "Zur Warteschlange hinzugefügt",
+    "copiedToClipboard": "In Zwischenablage kopiert",
+    "settingsSaved": "Einstellungen gespeichert",
+    "urlsAdded": "{{count}} URLs hinzugefügt",
+    "undoSuccess": "Rückgängig erfolgreich"
+  },
+  "onboarding": {
+    "welcome": {
+      "title": "Willkommen bei MediaGrab!",
+      "description": "Laden Sie Videos und Audio von YouTube, Vimeo, Twitter und vielen anderen Plattformen herunter."
+    },
+    "url": {
+      "title": "URL einfügen",
+      "description": "Fügen Sie die URL des Videos ein, das Sie herunterladen möchten. Verwenden Sie Strg+V zum schnellen Einfügen."
+    },
+    "queue": {
+      "title": "Download-Warteschlange",
+      "description": "Fügen Sie mehrere Videos hinzu und laden Sie sie nacheinander herunter. Klicken Sie auf das Warteschlangen-Symbol oben rechts zum Verwalten."
+    },
+    "history": {
+      "title": "Download-Verlauf",
+      "description": "Verfolgen Sie alle Ihre Downloads. Laden Sie aus dem Verlauf erneut herunter oder öffnen Sie Dateien direkt."
+    },
+    "settings": {
+      "title": "Einstellungen",
+      "description": "Passen Sie Thema, Sprache, Cookie-Einstellungen und mehr an."
+    },
+    "prev": "Zurück",
+    "next": "Weiter",
+    "skip": "Überspringen",
+    "finish": "Loslegen"
+  },
+  "accessibility": {
+    "videoUrlInput": "Video-URL-Eingabe",
+    "showRecentUrls": "Letzte URLs anzeigen",
+    "removeFromRecent": "Aus letzten entfernen",
+    "selectQuality": "Videoqualität auswählen",
+    "selectFormat": "Download-Format auswählen",
+    "browseFolder": "Ordner durchsuchen",
+    "selectedFolder": "Ausgewählter Ordner: {{path}}",
+    "noFolderSelected": "Kein Ordner ausgewählt",
+    "closeQueuePanel": "Warteschlangen-Panel schließen",
+    "moveUpInQueue": "In Warteschlange nach oben",
+    "moveDownInQueue": "In Warteschlange nach unten",
+    "cancelDownload": "Download abbrechen",
+    "removeFromQueue": "Aus Warteschlange entfernen",
+    "tryAgain": "Erneut versuchen",
+    "closeSettings": "Einstellungen schließen",
+    "settingsTabs": "Einstellungs-Tabs"
+  },
+  "folderPicker": {
+    "noFolderSelected": "Kein Ordner ausgewählt"
+  },
+  "copyDebugInfo": {
+    "button": "Debug-Info kopieren",
+    "copied": "Debug-Info in Zwischenablage kopiert",
+    "failed": "Debug-Info konnte nicht kopiert werden"
+  },
+  "mediaInfo": {
+    "duration": "Dauer",
+    "uploader": "Hochgeladen von",
+    "size": "Größe",
+    "unknownSize": "Unbekannte Größe",
+    "estimated": "Geschätzt: {{size}}"
   }
 }

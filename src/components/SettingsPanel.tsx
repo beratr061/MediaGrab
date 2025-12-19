@@ -1,8 +1,7 @@
 import { useState, useEffect, useCallback, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { X, Settings, Cookie, Subtitles, Globe, Shield, Languages, Download, RefreshCw, CheckCircle, Palette, Sun, Moon, Monitor, FileText, RotateCcw, Gauge, Contrast } from "lucide-react";
-import { invoke } from "@tauri-apps/api/core";
-import { listen } from "@tauri-apps/api/event";
+import { invoke, listen } from "@/lib/tauri";
 import { useTranslation } from "react-i18next";
 import { Button } from "./ui/button";
 import { Select, type SelectOption } from "./ui/select";
@@ -250,7 +249,7 @@ export function SettingsPanel({ isOpen, onClose, preferences, onPreferencesChang
             </div>
 
             {/* Tabs */}
-            <div className="flex border-b border-border px-2" role="tablist" aria-label={t("settings.tabs.label", "Settings tabs")}>
+            <div className="flex border-b border-border px-2 overflow-x-auto" role="tablist" aria-label={t("settings.tabs.label", "Settings tabs")}>
               {tabs.map((tab) => (
                 <button
                   key={tab.id}
@@ -261,7 +260,7 @@ export function SettingsPanel({ isOpen, onClose, preferences, onPreferencesChang
                   id={`tab-${tab.id}`}
                   tabIndex={activeTab === tab.id ? 0 : -1}
                   className={cn(
-                    "flex items-center gap-2 px-3 py-2.5 text-sm font-medium transition-colors relative",
+                    "flex items-center gap-1.5 px-2 py-2.5 text-sm font-medium transition-colors relative whitespace-nowrap shrink-0",
                     activeTab === tab.id ? "text-primary" : "text-muted-foreground hover:text-foreground"
                   )}
                 >

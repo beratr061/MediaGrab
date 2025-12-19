@@ -105,7 +105,7 @@ export function QueuePanel({ isOpen, onClose }: QueuePanelProps) {
                   {failedCount > 0 && <span className="flex items-center gap-1 text-destructive"><XCircle className="h-3 w-3" />{failedCount}</span>}
                 </div>
               </div>
-              <Button variant="ghost" size="icon" onClick={onClose} aria-label="Close queue panel"><X className="h-4 w-4" /></Button>
+              <Button variant="ghost" size="icon" onClick={onClose} aria-label={t("accessibility.closeQueuePanel", "Close queue panel")}><X className="h-4 w-4" /></Button>
             </div>
 
             {/* Estimated time */}

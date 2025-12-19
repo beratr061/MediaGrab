@@ -139,90 +139,6 @@ function isAuthenticationError(error: string): boolean {
 }
 
 /**
- * Categorize error messages for user-friendly display
- * **Validates: Requirements 6.2, 6.3**
- */
-function categorizeError(error: string): ErrorInfo {
-  const lowerError = error.toLowerCase();
-  
-  // Private video errors
-  if (lowerError.includes("private") || lowerError.includes("sign in") || lowerError.includes("login")) {
-    return {
-      message: "This video is private or requires sign-in.",
-      category: "private",
-      icon: Lock,
-      isRetryable: false,
-      suggestion: "Try enabling browser cookie import to access content you have legitimate access to.",
-    };
-  }
-  
-  // Age-restricted content
-  if (lowerError.includes("age") || lowerError.includes("confirm your age") || lowerError.includes("age-restricted")) {
-    return {
-      message: "This video is age-restricted.",
-      category: "age-restricted",
-      icon: Lock,
-      isRetryable: false,
-      suggestion: "Enable browser cookie import in settings to verify your age.",
-    };
-  }
-  
-  // Region-locked content
-  if (lowerError.includes("not available") || lowerError.includes("blocked") || lowerError.includes("region") || lowerError.includes("geo")) {
-    return {
-      message: "This video is not available in your region.",
-      category: "region-locked",
-      icon: Globe,
-      isRetryable: false,
-      suggestion: "This content is restricted based on your location.",
-    };
-  }
-  
-  // Network errors - these are retryable
-  // **Validates: Requirements 6.2**
-  if (lowerError.includes("network") || 
-      lowerError.includes("connection") || 
-      lowerError.includes("timeout") || 
-      lowerError.includes("timed out") ||
-      lowerError.includes("unable to download") ||
-      lowerError.includes("http error") ||
-      lowerError.includes("ssl") ||
-      lowerError.includes("certificate")) {
-    return {
-      message: "Network error. Please check your connection.",
-      category: "network",
-      icon: Wifi,
-      isRetryable: true,
-      suggestion: "Check your internet connection and try again.",
-    };
-  }
-  
-  // Not found errors
-  if (lowerError.includes("not found") || 
-      lowerError.includes("404") || 
-      lowerError.includes("does not exist") || 
-      lowerError.includes("unavailable") ||
-      lowerError.includes("removed") ||
-      lowerError.includes("deleted")) {
-    return {
-      message: "Video not found. Please check the URL.",
-      category: "not-found",
-      icon: FileQuestion,
-      isRetryable: false,
-      suggestion: "The video may have been removed or the URL may be incorrect.",
-    };
-  }
-  
-  // Generic error - return original error message
-  return {
-    message: error,
-    category: "generic",
-    icon: AlertCircle,
-    isRetryable: false,
-  };
-}
-
-/**
  * Status display component with error categorization, retry option, and cookie suggestion
  * 
  * **Validates: Requirements 4.3, 4.4, 4.5, 4.6, 6.2, 6.3, 13.2**
@@ -240,7 +156,88 @@ export function StatusDisplay({
   const { t } = useTranslation();
   const config = statusConfigs[state];
   const Icon = config.icon;
-  const errorInfo = error ? categorizeError(error) : null;
+  
+  // Categorize error with translations
+  const getErrorInfo = (error: string): ErrorInfo => {
+    const lowerError = error.toLowerCase();
+    
+    // Private video errors
+    if (lowerError.includes("private") || lowerError.includes("sign in") || lowerError.includes("login")) {
+      return {
+        message: t("errors.privateVideo"),
+        category: "private",
+        icon: Lock,
+        isRetryable: false,
+        suggestion: t("suggestions.privateVideo"),
+      };
+    }
+    
+    // Age-restricted content
+    if (lowerError.includes("age") || lowerError.includes("confirm your age") || lowerError.includes("age-restricted")) {
+      return {
+        message: t("errors.ageRestricted"),
+        category: "age-restricted",
+        icon: Lock,
+        isRetryable: false,
+        suggestion: t("suggestions.ageRestricted"),
+      };
+    }
+    
+    // Region-locked content
+    if (lowerError.includes("not available") || lowerError.includes("blocked") || lowerError.includes("region") || lowerError.includes("geo")) {
+      return {
+        message: t("errors.regionLocked"),
+        category: "region-locked",
+        icon: Globe,
+        isRetryable: false,
+        suggestion: t("suggestions.regionLocked"),
+      };
+    }
+    
+    // Network errors - these are retryable
+    if (lowerError.includes("network") || 
+        lowerError.includes("connection") || 
+        lowerError.includes("timeout") || 
+        lowerError.includes("timed out") ||
+        lowerError.includes("unable to download") ||
+        lowerError.includes("http error") ||
+        lowerError.includes("ssl") ||
+        lowerError.includes("certificate")) {
+      return {
+        message: t("errors.networkError"),
+        category: "network",
+        icon: Wifi,
+        isRetryable: true,
+        suggestion: t("suggestions.networkError"),
+      };
+    }
+    
+    // Not found errors
+    if (lowerError.includes("not found") || 
+        lowerError.includes("404") || 
+        lowerError.includes("does not exist") || 
+        lowerError.includes("unavailable") ||
+        lowerError.includes("removed") ||
+        lowerError.includes("deleted")) {
+      return {
+        message: t("errors.notFound"),
+        category: "not-found",
+        icon: FileQuestion,
+        isRetryable: false,
+        suggestion: t("suggestions.notFound"),
+      };
+    }
+    
+    // Generic error - return original error message
+    return {
+      message: error,
+      category: "generic",
+      icon: AlertCircle,
+      isRetryable: false,
+    };
+  };
+  
+  const errorInfo = error ? getErrorInfo(error) : null;
   
   // Override message if retrying
   const displayMessage = retryInfo 
@@ -373,7 +370,7 @@ export function StatusDisplay({
                       className="flex items-center gap-2 w-full justify-center"
                     >
                       <RefreshCw className="h-4 w-4" />
-                      Retry Download
+                      {t("buttons.retryDownload", "Retry Download")}
                     </Button>
                   </motion.div>
                 )}
@@ -395,18 +392,17 @@ export function StatusDisplay({
               <Cookie className="h-4 w-4 text-primary mt-0.5 shrink-0" />
               <div className="flex-1 space-y-2">
                 <p className="text-sm text-foreground">
-                  This content may require authentication.
+                  {t("cookies.title", "This content may require authentication.")}
                 </p>
                 <p className="text-xs text-muted-foreground">
-                  Try enabling cookie import from your browser to access private, 
-                  age-restricted, or subscription content you have legitimate access to.
+                  {t("cookies.description", "Try enabling cookie import from your browser to access private, age-restricted, or subscription content you have legitimate access to.")}
                 </p>
                 {onOpenSettings && (
                   <button
                     onClick={onOpenSettings}
                     className="text-xs text-primary hover:underline font-medium"
                   >
-                    Open Settings →
+                    {t("cookies.openSettings", "Open Settings →")}
                   </button>
                 )}
               </div>

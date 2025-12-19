@@ -41,7 +41,10 @@
     "addedToQueue": "Kuyruğa eklendi",
     "copiedToClipboard": "Panoya kopyalandı",
     "settingsSaved": "Ayarlar kaydedildi",
-    "urlsAdded": "{{count}} URL eklendi"
+    "urlsAdded": "{{count}} URL eklendi",
+    "undoSuccess": "Geri alma başarılı",
+    "debugInfoCopied": "Hata ayıklama bilgisi panoya kopyalandı",
+    "debugInfoFailed": "Hata ayıklama bilgisi kopyalanamadı"
   },
   "header": {
     "history": "İndirme Geçmişi",
@@ -82,6 +85,7 @@
     "play": "Oynat",
     "openFolder": "Klasörü Aç",
     "retry": "Tekrar Dene",
+    "retryDownload": "İndirmeyi Tekrar Dene",
     "dismiss": "Kapat",
     "update": "Güncelle",
     "showVideos": "Videoları Göster",
@@ -145,7 +149,9 @@
   "mediaInfo": {
     "duration": "Süre",
     "uploader": "Yükleyen",
-    "size": "Boyut"
+    "size": "Boyut",
+    "unknownSize": "Boyut bilinmiyor",
+    "estimated": "Tahmini: {{size}}"
   },
   "queue": {
     "title": "İndirme Kuyruğu",
@@ -190,7 +196,8 @@
       "download": "İndirme",
       "appearance": "Görünüm",
       "advanced": "Gelişmiş",
-      "about": "Hakkında"
+      "about": "Hakkında",
+      "label": "Ayar sekmeleri"
     },
     "general": "Genel",
     "resetToDefaults": "Varsayılanlara Dön",
@@ -227,6 +234,7 @@
     "themeLight": "Açık",
     "themeDark": "Koyu",
     "themeSystem": "Sistem",
+    "themeHighContrast": "Yüksek Kontrast",
     "accentColor": "Vurgu Rengi",
     "colors": {
       "blue": "Mavi",
@@ -240,11 +248,18 @@
     },
     "filenameTemplate": "Dosya Adı Şablonu",
     "filenameTemplateDescription": "Çıktı dosya adı formatını özelleştirin. Varsayılan için boş bırakın.",
-    "availablePlaceholders": "Kullanılabilir yer tutucular"
+    "availablePlaceholders": "Kullanılabilir yer tutucular",
+    "bandwidthLimit": "Bant Genişliği Limiti",
+    "bandwidthLimitDescription": "Bant genişliğinden tasarruf etmek için indirme hızını sınırlayın",
+    "bandwidthUnlimited": "Sınırsız",
+    "bandwidthCustom": "Özel (KB/s)",
+    "debug": "Hata Ayıklama",
+    "version": "Sürüm"
   },
   "update": {
     "available": "yt-dlp güncellemesi mevcut",
-    "version": "({{version}})"
+    "version": "({{version}})",
+    "failed": "Güncelleme başarısız"
   },
   "shortcuts": {
     "paste": "Yapıştır",
@@ -284,5 +299,54 @@
     "downloaded": "İndirildi",
     "resuming": "İndirme devam ettiriliyor...",
     "resumed": "İndirme devam etti"
+  },
+  "schedule": {
+    "title": "Zamanlanmış İndirmeler",
+    "addNew": "Yeni Zamanlama Ekle",
+    "date": "Tarih",
+    "time": "Saat",
+    "add": "Zamanlamaya Ekle",
+    "upcoming": "Yaklaşan İndirmeler",
+    "empty": "Zamanlanmış indirme yok",
+    "startingSoon": "Yakında başlıyor...",
+    "pause": "Duraklat",
+    "resume": "Devam Et"
+  },
+  "batch": {
+    "title": "Toplu URL İçe Aktarma",
+    "dropFile": ".txt dosyasını buraya sürükleyin veya tıklayarak seçin",
+    "pasteUrls": "Veya URL'leri yapıştırın (her satıra bir tane)",
+    "validUrls": "{{count}} geçerli URL",
+    "invalidUrls": "{{count}} geçersiz URL",
+    "import": "{{count}} URL İçe Aktar"
+  },
+  "formatOptions": {
+    "bestAudio": "En İyi Ses"
+  },
+  "accessibility": {
+    "videoUrlInput": "Video URL girişi",
+    "showRecentUrls": "Son URL'leri göster",
+    "removeFromRecent": "Son listeden kaldır",
+    "selectQuality": "Video kalitesi seçin",
+    "selectFormat": "İndirme formatı seçin",
+    "browseFolder": "Klasör seç",
+    "selectedFolder": "Seçili klasör: {{path}}",
+    "noFolderSelected": "Klasör seçilmedi",
+    "closeQueuePanel": "Kuyruk panelini kapat",
+    "moveUpInQueue": "Kuyrukta yukarı taşı",
+    "moveDownInQueue": "Kuyrukta aşağı taşı",
+    "cancelDownload": "İndirmeyi iptal et",
+    "removeFromQueue": "Kuyruktan kaldır",
+    "tryAgain": "Tekrar dene",
+    "closeSettings": "Ayarları kapat",
+    "settingsTabs": "Ayar sekmeleri"
+  },
+  "folderPicker": {
+    "noFolderSelected": "Klasör seçilmedi"
+  },
+  "copyDebugInfo": {
+    "button": "Hata Bilgisini Kopyala",
+    "copied": "Hata bilgisi panoya kopyalandı",
+    "failed": "Hata bilgisi kopyalanamadı"
   }
 }

@@ -92,3 +92,5 @@ src-tauri/bin/ffprobe*
 *.flac
 *.wav
 *.avi
+
+*storybook.log

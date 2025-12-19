@@ -15,7 +15,7 @@ import {
   Search,
   Undo2,
 } from 'lucide-react';
-import { invoke } from '@tauri-apps/api/core';
+import { invoke } from '@/lib/tauri';
 import { useTranslation } from 'react-i18next';
 import { Button } from './ui/button';
 import { SkeletonHistoryItem, SkeletonList } from './Skeleton';

@@ -1,9 +1,8 @@
-import { useState, useRef, useEffect, type DragEvent, type ChangeEvent, type KeyboardEvent } from "react";
+import { useState, useRef, useEffect, type ChangeEvent, type KeyboardEvent, type DragEvent } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Link, AlertCircle, Clipboard, ChevronDown, Clock, X } from "lucide-react";
 import { validateUrl, sanitizeUrl } from "@/lib/validation";
 import { cn } from "@/lib/utils";
-import { fadeInVariants, defaultTransition } from "@/lib/animations";
 import { PlatformIcon, detectPlatform, type Platform } from "./PlatformIcon";
 
 const RECENT_URLS_KEY = "mediagrab-recent-urls";
@@ -39,90 +38,77 @@ function saveRecentUrl(url: string) {
   }
 }
 
-export function UrlInput({ 
-  id, 
-  value, 
-  onChange, 
-  onSubmit, 
+export function UrlInput({
+  id,
+  value,
+  onChange,
+  onSubmit,
   onMultipleUrls,
-  disabled = false, 
-  className, 
-  "aria-describedby": ariaDescribedBy 
+  disabled = false,
+  className,
+  "aria-describedby": ariaDescribedBy,
 }: UrlInputProps) {
+  const [isFocused, setIsFocused] = useState(false);
   const [isDragOver, setIsDragOver] = useState(false);
   const [showPasteHint, setShowPasteHint] = useState(false);
   const [showDropdown, setShowDropdown] = useState(false);
   const [error, setError] = useState<string | undefined>();
   const [touched, setTouched] = useState(false);
   const [recentUrls, setRecentUrls] = useState<string[]>([]);
-  const [detectedPlatform, setDetectedPlatform] = useState<Platform>("unknown");
+  const [platform, setPlatform] = useState<Platform>("unknown");
+
   const inputRef = useRef<HTMLInputElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
 
-  // Load recent URLs on mount
+  // Load recent URLs
   useEffect(() => {
     setRecentUrls(getRecentUrls());
   }, []);
 
-  // Detect platform when URL changes
+  // Detect platform
   useEffect(() => {
-    if (value.trim()) {
-      setDetectedPlatform(detectPlatform(value));
-    } else {
-      setDetectedPlatform("unknown");
-    }
+    setPlatform(value.trim() ? detectPlatform(value) : "unknown");
   }, [value]);
 
-  // Validate on change when touched
+  // Validate on change
   useEffect(() => {
-    if (touched && value.length > 0) {
-      const result = validateUrl(value);
-      setError(result.error);
-    } else if (touched && value.length === 0) {
+    if (touched && value) {
+      setError(validateUrl(value).error);
+    } else {
       setError(undefined);
     }
   }, [value, touched]);
 
   // Close dropdown on outside click
   useEffect(() => {
-    const handleClickOutside = (e: MouseEvent) => {
+    const handleClick = (e: MouseEvent) => {
       if (containerRef.current && !containerRef.current.contains(e.target as Node)) {
         setShowDropdown(false);
       }
     };
-    document.addEventListener("mousedown", handleClickOutside);
-    return () => document.removeEventListener("mousedown", handleClickOutside);
+    document.addEventListener("mousedown", handleClick);
+    return () => document.removeEventListener("mousedown", handleClick);
   }, []);
 
-  // Check clipboard on focus for paste hint
   const handleFocus = async () => {
+    setIsFocused(true);
+    if (recentUrls.length > 0 && !value) setShowDropdown(true);
+
     try {
-      const clipboardText = await navigator.clipboard.readText();
-      if (clipboardText && clipboardText.trim().length > 0 && value.length === 0) {
-        if (clipboardText.includes("http") || clipboardText.includes("www.")) {
-          setShowPasteHint(true);
-        }
+      const clip = await navigator.clipboard.readText();
+      if (clip && !value && (clip.includes("http") || clip.includes("www."))) {
+        setShowPasteHint(true);
       }
     } catch {
       // Clipboard access denied
     }
-    
-    // Show dropdown if there are recent URLs and input is empty
-    if (recentUrls.length > 0 && !value) {
-      setShowDropdown(true);
-    }
   };
 
   const handleBlur = () => {
+    setIsFocused(false);
     setTouched(true);
     setShowPasteHint(false);
-    // Delay hiding dropdown to allow click
-    setTimeout(() => setShowDropdown(false), 200);
-    
-    if (value.length > 0) {
-      const result = validateUrl(value);
-      setError(result.error);
-    }
+    setTimeout(() => setShowDropdown(false), 150);
   };
 
   const handleChange = (e: ChangeEvent<HTMLInputElement>) => {
@@ -135,7 +121,6 @@ export function UrlInput({
     if (e.key === "Enter" && onSubmit && !disabled) {
       const result = validateUrl(value);
       if (result.isValid && result.sanitizedUrl) {
-        // Use sanitized URL
         onChange(result.sanitizedUrl);
         saveRecentUrl(result.sanitizedUrl);
         setRecentUrls(getRecentUrls());
@@ -146,114 +131,97 @@ export function UrlInput({
       }
     } else if (e.key === "Escape") {
       setShowDropdown(false);
-    } else if (e.key === "ArrowDown" && showDropdown) {
-      e.preventDefault();
-      // Focus first dropdown item
     }
   };
 
-  // Drag and drop support
-  const handleDragOver = (e: DragEvent<HTMLDivElement>) => {
+  const handleDragOver = (e: DragEvent) => {
     e.preventDefault();
-    if (!disabled) {
-      setIsDragOver(true);
-    }
+    if (!disabled) setIsDragOver(true);
   };
 
-  const handleDragLeave = (e: DragEvent<HTMLDivElement>) => {
+  const handleDragLeave = (e: DragEvent) => {
     e.preventDefault();
     setIsDragOver(false);
   };
 
-  const handleDrop = (e: DragEvent<HTMLDivElement>) => {
+  const handleDrop = (e: DragEvent) => {
     e.preventDefault();
     setIsDragOver(false);
     if (disabled) return;
-
     const text = e.dataTransfer.getData("text/plain");
-    if (text) {
-      handleTextInput(text);
-    }
+    if (text) processInput(text);
   };
 
-  const handlePasteFromClipboard = async () => {
+  const handlePaste = async () => {
     try {
       const text = await navigator.clipboard.readText();
-      if (text) {
-        handleTextInput(text);
-      }
+      if (text) processInput(text);
     } catch {
       // Clipboard access denied
     }
   };
 
-  const handleTextInput = (text: string) => {
-    const trimmed = text.trim();
-    const lines = trimmed.split(/[\n\r]+/).map((l) => sanitizeUrl(l)).filter((l) => l.length > 0);
-    
-    // Check if multiple URLs
+  const processInput = (text: string) => {
+    const lines = text.trim().split(/[\n\r]+/).map(sanitizeUrl).filter(Boolean);
+
     if (lines.length > 1 && onMultipleUrls) {
       const validUrls = lines
-        .map((line) => validateUrl(line))
-        .filter((result) => result.isValid && result.sanitizedUrl)
-        .map((result) => result.sanitizedUrl!);
+        .map((l) => validateUrl(l))
+        .filter((r) => r.isValid && r.sanitizedUrl)
+        .map((r) => r.sanitizedUrl!);
       if (validUrls.length > 1) {
         onMultipleUrls(validUrls);
         return;
       }
     }
-    
-    // Single URL - sanitize before setting
-    const result = validateUrl(trimmed);
-    onChange(result.sanitizedUrl || trimmed);
+
+    const result = validateUrl(text.trim());
+    onChange(result.sanitizedUrl || text.trim());
     setShowPasteHint(false);
     setShowDropdown(false);
     setTouched(true);
   };
 
-  const handleSelectRecent = (url: string) => {
+  const selectRecent = (url: string) => {
     onChange(url);
     setShowDropdown(false);
     setTouched(true);
     inputRef.current?.focus();
   };
 
-  const handleRemoveRecent = (url: string, e: React.MouseEvent) => {
+  const removeRecent = (url: string, e: React.MouseEvent) => {
     e.stopPropagation();
     const updated = recentUrls.filter((u) => u !== url);
     setRecentUrls(updated);
     localStorage.setItem(RECENT_URLS_KEY, JSON.stringify(updated));
   };
 
-  const toggleDropdown = () => {
-    if (recentUrls.length > 0) {
-      setShowDropdown(!showDropdown);
-    }
-  };
+  const hasError = error && touched;
 
   return (
-    <div ref={containerRef} className={cn("space-y-2", className)}>
+    <div ref={containerRef} className={cn("relative", className)}>
+      {/* Input Container */}
       <div
         className={cn(
-          "relative flex items-center rounded-lg border bg-background transition-all duration-200",
-          isDragOver && "border-primary bg-primary/5 ring-2 ring-primary/20",
-          error && touched && "border-destructive",
-          !error && !isDragOver && "border-input hover:border-muted-foreground/50",
+          "flex items-center gap-2 rounded-lg border bg-background px-3 py-2 transition-colors",
+          isFocused && !hasError && "border-primary ring-1 ring-primary/20",
+          isDragOver && "border-primary bg-primary/5",
+          hasError && "border-destructive",
+          !isFocused && !hasError && !isDragOver && "border-input hover:border-muted-foreground/50",
           disabled && "opacity-50 cursor-not-allowed"
         )}
         onDragOver={handleDragOver}
         onDragLeave={handleDragLeave}
         onDrop={handleDrop}
       >
-        {/* Platform icon or link icon */}
-        <div className="flex items-center pl-3">
-          {detectedPlatform !== "unknown" ? (
-            <PlatformIcon platform={detectedPlatform} size="sm" />
-          ) : (
-            <Link className="h-4 w-4 text-muted-foreground" />
-          )}
-        </div>
-        
+        {/* Icon */}
+        {platform !== "unknown" ? (
+          <PlatformIcon platform={platform} size="sm" />
+        ) : (
+          <Link className="h-4 w-4 shrink-0 text-muted-foreground" />
+        )}
+
+        {/* Input */}
         <input
           ref={inputRef}
           id={id}
@@ -266,106 +234,91 @@ export function UrlInput({
           disabled={disabled}
           placeholder="Paste a video URL here..."
           aria-label="Video URL input"
-          aria-invalid={error && touched ? "true" : "false"}
-          aria-describedby={ariaDescribedBy || (error && touched ? "url-error" : undefined)}
+          aria-invalid={hasError ? "true" : "false"}
+          aria-describedby={ariaDescribedBy || (hasError ? "url-error" : undefined)}
           autoComplete="off"
-          className={cn(
-            "flex-1 bg-transparent px-3 py-3 text-sm outline-none placeholder:text-muted-foreground",
-            disabled && "cursor-not-allowed"
-          )}
+          className="min-w-0 flex-1 bg-transparent text-sm outline-none placeholder:text-muted-foreground focus-visible:ring-0 focus-visible:ring-offset-0"
         />
-        
-        {/* Paste hint button */}
+
+        {/* Paste Hint */}
         <AnimatePresence>
           {showPasteHint && !disabled && (
             <motion.button
-              variants={fadeInVariants}
-              initial="initial"
-              animate="animate"
-              exit="exit"
-              transition={defaultTransition}
-              onClick={handlePasteFromClipboard}
-              className="mr-2 flex items-center gap-1 rounded-md bg-primary/10 px-2 py-1 text-xs text-primary hover:bg-primary/20 transition-colors"
+              initial={{ opacity: 0, scale: 0.9 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.9 }}
+              onClick={handlePaste}
+              className="flex shrink-0 items-center gap-1 rounded bg-primary px-2 py-1 text-xs text-primary-foreground hover:bg-primary/90"
             >
               <Clipboard className="h-3 w-3" />
               Paste
             </motion.button>
           )}
         </AnimatePresence>
-        
-        {/* Dropdown toggle for recent URLs */}
+
+        {/* Dropdown Toggle */}
         {recentUrls.length > 0 && !disabled && (
           <button
             type="button"
-            onClick={toggleDropdown}
-            className="mr-2 p-1 rounded hover:bg-muted transition-colors"
+            onClick={() => setShowDropdown(!showDropdown)}
+            className="shrink-0 rounded p-1 hover:bg-muted"
             aria-label="Show recent URLs"
           >
-            <ChevronDown className={cn(
-              "h-4 w-4 text-muted-foreground transition-transform",
-              showDropdown && "rotate-180"
-            )} />
+            <ChevronDown className={cn("h-4 w-4 text-muted-foreground transition-transform", showDropdown && "rotate-180")} />
           </button>
         )}
       </div>
-      
-      {/* Recent URLs dropdown */}
+
+      {/* Recent URLs Dropdown */}
       <AnimatePresence>
         {showDropdown && recentUrls.length > 0 && (
           <motion.div
-            initial={{ opacity: 0, y: -10 }}
+            initial={{ opacity: 0, y: -8 }}
             animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -10 }}
-            transition={defaultTransition}
-            className="absolute z-50 mt-1 w-full rounded-lg border border-border bg-popover shadow-lg overflow-hidden"
-            style={{ maxHeight: "240px", overflowY: "auto" }}
+            exit={{ opacity: 0, y: -8 }}
+            className="absolute left-0 right-0 z-50 mt-1 max-h-60 overflow-auto rounded-lg border bg-popover p-1 shadow-lg"
           >
-            <div className="p-1">
-              <div className="px-2 py-1.5 text-xs font-medium text-muted-foreground flex items-center gap-1">
-                <Clock className="h-3 w-3" />
-                Recent URLs
-              </div>
-              {recentUrls.map((url) => {
-                const platform = detectPlatform(url);
-                return (
-                  <button
-                    key={url}
-                    type="button"
-                    onClick={() => handleSelectRecent(url)}
-                    className="w-full flex items-center gap-2 px-2 py-2 text-sm hover:bg-accent rounded-md transition-colors group"
-                  >
-                    <PlatformIcon platform={platform} size="sm" />
-                    <span className="flex-1 truncate text-left">{url}</span>
-                    <button
-                      onClick={(e) => handleRemoveRecent(url, e)}
-                      className="opacity-0 group-hover:opacity-100 p-1 hover:bg-destructive/10 rounded transition-all"
-                      aria-label="Remove from recent"
-                    >
-                      <X className="h-3 w-3 text-muted-foreground hover:text-destructive" />
-                    </button>
-                  </button>
-                );
-              })}
+            <div className="flex items-center gap-1 px-2 py-1.5 text-xs text-muted-foreground">
+              <Clock className="h-3 w-3" />
+              Recent URLs
             </div>
+            {recentUrls.map((url) => (
+              <div
+                key={url}
+                role="option"
+                tabIndex={0}
+                onClick={() => selectRecent(url)}
+                onKeyDown={(e) => e.key === "Enter" && selectRecent(url)}
+                className="group flex cursor-pointer items-center gap-2 rounded px-2 py-2 text-sm hover:bg-accent"
+              >
+                <PlatformIcon platform={detectPlatform(url)} size="sm" />
+                <span className="flex-1 truncate">{url}</span>
+                <button
+                  type="button"
+                  onClick={(e) => removeRecent(url, e)}
+                  className="rounded p-1 opacity-0 hover:bg-destructive/10 group-hover:opacity-100"
+                  aria-label="Remove from recent"
+                >
+                  <X className="h-3 w-3 text-muted-foreground hover:text-destructive" />
+                </button>
+              </div>
+            ))}
           </motion.div>
         )}
       </AnimatePresence>
-      
-      {/* Error message */}
+
+      {/* Error Message */}
       <AnimatePresence>
-        {error && touched && (
+        {hasError && (
           <motion.div
             id="url-error"
             role="alert"
-            aria-live="polite"
-            variants={fadeInVariants}
-            initial="initial"
-            animate="animate"
-            exit="exit"
-            transition={defaultTransition}
-            className="flex items-center gap-2 text-sm text-destructive"
+            initial={{ opacity: 0, y: -4 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -4 }}
+            className="mt-2 flex items-center gap-2 text-sm text-destructive"
           >
-            <AlertCircle className="h-4 w-4" aria-hidden="true" />
+            <AlertCircle className="h-4 w-4" />
             {error}
           </motion.div>
         )}

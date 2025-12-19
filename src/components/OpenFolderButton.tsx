@@ -1,6 +1,6 @@
 import { motion } from "framer-motion";
 import { FolderOpen } from "lucide-react";
-import { invoke } from "@tauri-apps/api/core";
+import { invoke } from "@/lib/tauri";
 import { Button } from "./ui/button";
 import { buttonVariants, springTransition } from "@/lib/animations";
 

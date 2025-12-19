@@ -83,7 +83,7 @@ export function ScheduleDownload({
 
   const getTimeRemaining = (timestamp: number) => {
     const diff = timestamp - Date.now();
-    if (diff <= 0) return 'Starting soon...';
+    if (diff <= 0) return t('schedule.startingSoon', 'Starting soon...');
     
     const hours = Math.floor(diff / (1000 * 60 * 60));
     const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
@@ -168,7 +168,7 @@ export function ScheduleDownload({
                     <option value="video-mp4">MP4</option>
                     <option value="video-webm">WebM</option>
                     <option value="audio-mp3">MP3</option>
-                    <option value="audio-best">Best Audio</option>
+                    <option value="audio-best">{t('formatOptions.bestAudio', 'Best Audio')}</option>
                   </select>
                 </div>
                 <div>
@@ -226,7 +226,7 @@ export function ScheduleDownload({
                           variant="ghost"
                           size="icon"
                           onClick={() => onToggle(download.id)}
-                          title={download.enabled ? 'Pause' : 'Resume'}
+                          title={download.enabled ? t('schedule.pause', 'Pause') : t('schedule.resume', 'Resume')}
                         >
                           {download.enabled ? <Pause className="h-4 w-4" /> : <Play className="h-4 w-4" />}
                         </Button>

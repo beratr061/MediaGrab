@@ -3,8 +3,7 @@
  */
 
 import { useState, useEffect, useCallback } from "react";
-import { listen } from "@tauri-apps/api/event";
-import { invoke } from "@tauri-apps/api/core";
+import { listen, invoke } from "@/lib/tauri";
 import type { ExecutablesMissingEvent } from "@/types";
 
 interface UseExecutablesReturn {

@@ -40,24 +40,10 @@ describe('URL Validation - Property Tests', () => {
     );
   });
 
-  it('should accept any non-empty, non-whitespace-only string', () => {
+  it('should accept valid URL-like strings', () => {
     fc.assert(
       fc.property(
-        // Generate arbitrary strings that contain at least one non-whitespace character
-        fc.string().filter(s => s.trim().length > 0),
-        (nonEmptyString) => {
-          const result = validateUrl(nonEmptyString);
-          expect(result.isValid).toBe(true);
-          expect(result.error).toBeUndefined();
-        }
-      ),
-      { numRuns: 100 }
-    );
-  });
-
-  it('should accept typical URL-like strings', () => {
-    fc.assert(
-      fc.property(
+        // Generate strings that look like valid URLs
         fc.webUrl(),
         (url) => {
           const result = validateUrl(url);
@@ -67,5 +53,14 @@ describe('URL Validation - Property Tests', () => {
       ),
       { numRuns: 100 }
     );
+  });
+
+  it('should reject invalid URL structures', () => {
+    // Single characters or strings without valid URL structure should be rejected
+    const invalidInputs = [':', '!', 'abc', 'test', 'no-dots'];
+    for (const input of invalidInputs) {
+      const result = validateUrl(input);
+      expect(result.isValid).toBe(false);
+    }
   });
 });

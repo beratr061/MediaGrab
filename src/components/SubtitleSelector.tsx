@@ -9,7 +9,7 @@ import {
   Globe,
   Sparkles,
 } from 'lucide-react';
-import { invoke } from '@tauri-apps/api/core';
+import { invoke } from '@/lib/tauri';
 import { Button } from './ui/button';
 import type { SubtitleInfo, SubtitleTrack, SubtitleOptions } from '@/types';
 

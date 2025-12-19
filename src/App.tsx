@@ -1,7 +1,7 @@
 import { useState, useCallback, useEffect, useRef, memo, lazy, Suspense } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Settings, Bell, ListOrdered, History, ListVideo, FileText, Clock, Upload } from "lucide-react";
-import { invoke } from "@tauri-apps/api/core";
+import { invoke } from "./lib/tauri";
 // Note: Notification support requires @tauri-apps/plugin-notification to be installed
 // import { sendNotification, isPermissionGranted, requestPermission } from "@tauri-apps/plugin-notification";
 import { useTranslation } from "react-i18next";

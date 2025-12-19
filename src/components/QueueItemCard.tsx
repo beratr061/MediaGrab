@@ -15,8 +15,9 @@ import {
   GripVertical,
   ZoomIn,
 } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 import { Button } from './ui/button';
-import { invoke } from '@tauri-apps/api/core';
+import { invoke } from '@/lib/tauri';
 import type { QueueItem } from '@/types';
 import { cn } from '@/lib/utils';
 
@@ -37,6 +38,7 @@ export function QueueItemCard({
   onMoveDown,
   showDragHandle = false,
 }: QueueItemCardProps) {
+  const { t } = useTranslation();
   const [showThumbnailPreview, setShowThumbnailPreview] = useState(false);
   const isActive = item.status === 'downloading' || item.status === 'merging';
   const isPending = item.status === 'pending';
@@ -95,17 +97,17 @@ export function QueueItemCard({
   const getStatusText = () => {
     switch (item.status) {
       case 'pending':
-        return 'Waiting...';
+        return t('queue.pending', 'Waiting...');
       case 'downloading':
         return `${item.progress.toFixed(1)}% • ${item.speed}${item.etaSeconds ? ` • ${formatEta(item.etaSeconds)}` : ''}`;
       case 'merging':
-        return 'Merging...';
+        return t('status.merging', 'Merging...');
       case 'completed':
-        return 'Completed';
+        return t('queue.completed', 'Completed');
       case 'failed':
-        return item.error || 'Failed';
+        return item.error || t('queue.failed', 'Failed');
       case 'cancelled':
-        return 'Cancelled';
+        return t('status.cancelled', 'Cancelled');
     }
   };
 
@@ -187,7 +189,7 @@ export function QueueItemCard({
                   size="icon"
                   className="h-7 w-7"
                   onClick={onMoveUp}
-                  aria-label="Move up in queue"
+                  aria-label={t("accessibility.moveUpInQueue", "Move up in queue")}
                 >
                   <ChevronUp className="h-4 w-4" />
                 </Button>
@@ -198,7 +200,7 @@ export function QueueItemCard({
                   size="icon"
                   className="h-7 w-7"
                   onClick={onMoveDown}
-                  aria-label="Move down in queue"
+                  aria-label={t("accessibility.moveDownInQueue", "Move down in queue")}
                 >
                   <ChevronDown className="h-4 w-4" />
                 </Button>
@@ -211,7 +213,7 @@ export function QueueItemCard({
               size="icon"
               className="h-7 w-7 text-destructive hover:text-destructive"
               onClick={onCancel}
-              aria-label="Cancel download"
+              aria-label={t("accessibility.cancelDownload", "Cancel download")}
             >
               <X className="h-4 w-4" />
             </Button>
@@ -222,7 +224,7 @@ export function QueueItemCard({
               size="icon"
               className="h-7 w-7"
               onClick={onRemove}
-              aria-label="Remove from queue"
+              aria-label={t("accessibility.removeFromQueue", "Remove from queue")}
             >
               <Trash2 className="h-4 w-4" />
             </Button>
@@ -257,7 +259,7 @@ export function QueueItemCard({
             onClick={handleOpenFile}
           >
             <Play className="mr-1 h-3 w-3" />
-            Play
+            {t("buttons.play", "Play")}
           </Button>
           <Button
             variant="outline"
@@ -266,7 +268,7 @@ export function QueueItemCard({
             onClick={handleOpenFolder}
           >
             <FolderOpen className="mr-1 h-3 w-3" />
-            Open Folder
+            {t("buttons.openFolder", "Open Folder")}
           </Button>
         </div>
       )}

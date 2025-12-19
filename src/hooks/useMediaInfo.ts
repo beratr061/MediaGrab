@@ -4,7 +4,7 @@
  */
 
 import { useState, useCallback, useEffect, useRef } from "react";
-import { invoke } from "@tauri-apps/api/core";
+import { invoke } from "@/lib/tauri";
 import { validateUrl } from "@/lib/validation";
 import type { MediaInfo, PlaylistInfo } from "@/types";
 

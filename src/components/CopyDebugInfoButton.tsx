@@ -1,7 +1,7 @@
 import { useState, useCallback } from "react";
 import { motion } from "framer-motion";
 import { Bug, Check, AlertCircle, Loader2, Copy } from "lucide-react";
-import { invoke } from "@tauri-apps/api/core";
+import { invoke } from "@/lib/tauri";
 import { Button } from "./ui/button";
 import { buttonVariants, springTransition } from "@/lib/animations";
 
