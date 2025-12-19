@@ -3,8 +3,13 @@
  * This allows running `npm run dev` without Tauri
  */
 
-// Check if running in Tauri
-export const isTauri = typeof window !== 'undefined' && '__TAURI__' in window;
+// Check if running in Tauri - check multiple indicators
+export const isTauri = typeof window !== 'undefined' && (
+  '__TAURI__' in window || 
+  '__TAURI_INTERNALS__' in window ||
+  window.location.protocol === 'tauri:' ||
+  window.location.protocol === 'https:' && window.location.hostname === 'tauri.localhost'
+);
 
 // Mock data
 const mockPreferences = {
