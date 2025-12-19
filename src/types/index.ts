@@ -188,7 +188,8 @@ export type QueueItemStatus =
   | 'merging'
   | 'completed'
   | 'failed'
-  | 'cancelled';
+  | 'cancelled'
+  | 'cancelling';
 
 // Queue item
 export interface QueueItem {

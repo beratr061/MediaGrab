@@ -1,7 +1,6 @@
 import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { User, Clock, HardDrive, Image as ImageIcon } from "lucide-react";
-import { useTranslation } from "react-i18next";
 import { slideUpVariants, defaultTransition } from "@/lib/animations";
 import { cn } from "@/lib/utils";
 import { useThumbnailCache } from "@/hooks/useThumbnailCache";
@@ -32,8 +31,8 @@ function formatDuration(seconds: number | null): string {
 /**
  * Formats file size in bytes to a human-readable string
  */
-function formatFileSize(bytes: number | null, t: (key: string, fallback?: string) => string): string {
-  if (bytes === null || bytes <= 0) return t("mediaInfo.unknownSize", "Unknown size");
+function formatFileSize(bytes: number | null): string {
+  if (bytes === null || bytes <= 0) return "Unknown size";
   
   const units = ["B", "KB", "MB", "GB"];
   let size = bytes;
@@ -105,7 +104,6 @@ function LoadingSkeleton() {
 }
 
 function MediaInfoContent({ mediaInfo }: { mediaInfo: MediaInfo }) {
-  const { t } = useTranslation();
   const [showLargeThumbnail, setShowLargeThumbnail] = useState(false);
   const [cachedThumbnail, setCachedThumbnail] = useState<string | null>(null);
   const [thumbnailError, setThumbnailError] = useState(false);
@@ -189,7 +187,7 @@ function MediaInfoContent({ mediaInfo }: { mediaInfo: MediaInfo }) {
           {mediaInfo.filesizeApprox !== null && (
             <div className="flex items-center gap-1.5">
               <HardDrive className="h-3.5 w-3.5" />
-              <span>{formatFileSize(mediaInfo.filesizeApprox, t)}</span>
+              <span>{formatFileSize(mediaInfo.filesizeApprox)}</span>
             </div>
           )}
         </div>

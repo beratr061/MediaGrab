@@ -1,6 +1,5 @@
 import { useEffect } from 'react';
 import { useQueueStore } from '@/stores/queueStore';
-import type { DownloadConfig } from '@/types';
 
 /**
  * Hook for managing the download queue

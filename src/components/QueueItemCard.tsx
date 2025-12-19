@@ -84,6 +84,7 @@ export function QueueItemCard({
         return <Clock className="h-4 w-4 text-muted-foreground" />;
       case 'downloading':
       case 'merging':
+      case 'cancelling':
         return <Loader2 className="h-4 w-4 animate-spin text-primary" />;
       case 'completed':
         return <CheckCircle className="h-4 w-4 text-green-500" />;
@@ -102,6 +103,8 @@ export function QueueItemCard({
         return `${item.progress.toFixed(1)}% • ${item.speed}${item.etaSeconds ? ` • ${formatEta(item.etaSeconds)}` : ''}`;
       case 'merging':
         return t('status.merging', 'Merging...');
+      case 'cancelling':
+        return t('status.cancelling', 'Cancelling...');
       case 'completed':
         return t('queue.completed', 'Completed');
       case 'failed':

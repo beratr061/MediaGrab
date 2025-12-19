@@ -198,7 +198,9 @@ export const useQueueStore = create<QueueState>()(
         
         // Optimistic update
         const newItems = [...items];
-        [newItems[index - 1], newItems[index]] = [newItems[index], newItems[index - 1]];
+        const temp = newItems[index - 1]!;
+        newItems[index - 1] = newItems[index]!;
+        newItems[index] = temp;
         set({ items: newItems });
         
         try {
@@ -217,7 +219,9 @@ export const useQueueStore = create<QueueState>()(
         
         // Optimistic update
         const newItems = [...items];
-        [newItems[index], newItems[index + 1]] = [newItems[index + 1], newItems[index]];
+        const temp = newItems[index]!;
+        newItems[index] = newItems[index + 1]!;
+        newItems[index + 1] = temp;
         set({ items: newItems });
         
         try {

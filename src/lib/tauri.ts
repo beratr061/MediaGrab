@@ -42,8 +42,8 @@ export async function emit(event: string, payload?: unknown): Promise<void> {
 export const opener = {
   async open(path: string): Promise<void> {
     if (isTauri) {
-      const { open } = await import('@tauri-apps/plugin-opener');
-      return open(path);
+      const openerModule = await import('@tauri-apps/plugin-opener');
+      return openerModule.openPath(path);
     }
     // In browser, open in new tab
     window.open(path, '_blank');
@@ -51,8 +51,8 @@ export const opener = {
   
   async reveal(path: string): Promise<void> {
     if (isTauri) {
-      const { reveal } = await import('@tauri-apps/plugin-opener');
-      return reveal(path);
+      const openerModule = await import('@tauri-apps/plugin-opener');
+      return openerModule.revealItemInDir(path);
     }
     console.log('[Mock] reveal:', path);
     alert(`Would open folder: ${path}`);
