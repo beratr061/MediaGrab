@@ -1,6 +1,6 @@
 import { createContext, useContext, useEffect, useState, type ReactNode } from "react";
 
-export type Theme = "light" | "dark" | "system";
+export type Theme = "light" | "dark" | "system" | "high-contrast";
 
 // Accent color presets with HSL values
 export type AccentColor = "blue" | "purple" | "green" | "orange" | "pink" | "red" | "teal" | "yellow";
@@ -26,9 +26,10 @@ export const ACCENT_COLORS: AccentColorConfig[] = [
 interface ThemeContextType {
   theme: Theme;
   setTheme: (theme: Theme) => void;
-  resolvedTheme: "light" | "dark";
+  resolvedTheme: "light" | "dark" | "high-contrast";
   accentColor: AccentColor;
   setAccentColor: (color: AccentColor) => void;
+  isHighContrast: boolean;
 }
 
 const ThemeContext = createContext<ThemeContextType | undefined>(undefined);
@@ -60,6 +61,18 @@ function applyAccentColor(color: AccentColor, isDark: boolean) {
   root.style.setProperty("--color-ring", `hsl(${hsl})`);
 }
 
+// Apply smooth theme transition
+function enableThemeTransition() {
+  const root = document.documentElement;
+  root.style.setProperty("--theme-transition", "background-color 0.3s ease, color 0.3s ease, border-color 0.3s ease");
+  root.classList.add("theme-transitioning");
+  
+  // Remove transition class after animation completes
+  setTimeout(() => {
+    root.classList.remove("theme-transitioning");
+  }, 300);
+}
+
 export function ThemeProvider({ children, defaultTheme = "system", defaultAccent = "blue" }: ThemeProviderProps) {
   const [theme, setThemeState] = useState<Theme>(() => {
     if (typeof window !== "undefined") {
@@ -77,7 +90,10 @@ export function ThemeProvider({ children, defaultTheme = "system", defaultAccent
     return defaultAccent;
   });
 
-  const [resolvedTheme, setResolvedTheme] = useState<"light" | "dark">(() => {
+  const [resolvedTheme, setResolvedTheme] = useState<"light" | "dark" | "high-contrast">(() => {
+    if (theme === "high-contrast") {
+      return "high-contrast";
+    }
     if (theme === "system") {
       return getSystemTheme();
     }
@@ -87,15 +103,22 @@ export function ThemeProvider({ children, defaultTheme = "system", defaultAccent
   useEffect(() => {
     const root = document.documentElement;
 
-    if (theme === "system") {
+    if (theme === "high-contrast") {
+      setResolvedTheme("high-contrast");
+      root.classList.remove("light", "dark");
+      root.classList.add("high-contrast");
+      // High contrast uses yellow accent by default
+      root.style.setProperty("--color-primary", "hsl(60 100% 50%)");
+      root.style.setProperty("--color-ring", "hsl(60 100% 50%)");
+    } else if (theme === "system") {
       const systemTheme = getSystemTheme();
       setResolvedTheme(systemTheme);
-      root.classList.remove("light", "dark");
+      root.classList.remove("light", "dark", "high-contrast");
       root.classList.add(systemTheme);
       applyAccentColor(accentColor, systemTheme === "dark");
     } else {
       setResolvedTheme(theme);
-      root.classList.remove("light", "dark");
+      root.classList.remove("light", "dark", "high-contrast");
       root.classList.add(theme);
       applyAccentColor(accentColor, theme === "dark");
     }
@@ -108,7 +131,7 @@ export function ThemeProvider({ children, defaultTheme = "system", defaultAccent
     const handleChange = (e: MediaQueryListEvent) => {
       const newTheme = e.matches ? "dark" : "light";
       setResolvedTheme(newTheme);
-      document.documentElement.classList.remove("light", "dark");
+      document.documentElement.classList.remove("light", "dark", "high-contrast");
       document.documentElement.classList.add(newTheme);
       applyAccentColor(accentColor, newTheme === "dark");
     };
@@ -117,7 +140,29 @@ export function ThemeProvider({ children, defaultTheme = "system", defaultAccent
     return () => mediaQuery.removeEventListener("change", handleChange);
   }, [theme, accentColor]);
 
+  // Detect system high contrast preference
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    
+    const highContrastQuery = window.matchMedia("(prefers-contrast: more)");
+    const handleHighContrastChange = (e: MediaQueryListEvent) => {
+      if (e.matches && theme === "system") {
+        // Auto-switch to high contrast if system prefers it
+        setThemeState("high-contrast");
+      }
+    };
+
+    // Check on mount
+    if (highContrastQuery.matches && theme === "system") {
+      setThemeState("high-contrast");
+    }
+
+    highContrastQuery.addEventListener("change", handleHighContrastChange);
+    return () => highContrastQuery.removeEventListener("change", handleHighContrastChange);
+  }, [theme]);
+
   const setTheme = (newTheme: Theme) => {
+    enableThemeTransition();
     localStorage.setItem(THEME_STORAGE_KEY, newTheme);
     setThemeState(newTheme);
   };
@@ -128,7 +173,7 @@ export function ThemeProvider({ children, defaultTheme = "system", defaultAccent
   };
 
   return (
-    <ThemeContext.Provider value={{ theme, setTheme, resolvedTheme, accentColor, setAccentColor }}>
+    <ThemeContext.Provider value={{ theme, setTheme, resolvedTheme, accentColor, setAccentColor, isHighContrast: resolvedTheme === "high-contrast" }}>
       {children}
     </ThemeContext.Provider>
   );

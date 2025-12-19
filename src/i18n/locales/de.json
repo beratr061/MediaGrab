@@ -198,5 +198,25 @@
     "en": "English",
     "tr": "Türkçe",
     "de": "Deutsch"
+  },
+  "network": {
+    "offline": "Sie sind offline",
+    "offlineDescription": "Überprüfen Sie Ihre Internetverbindung. Downloads werden fortgesetzt, wenn Sie wieder online sind.",
+    "slowConnection": "Langsame Verbindung erkannt",
+    "slowDescription": "Downloads können langsamer als gewöhnlich sein. Erwägen Sie, auf eine bessere Verbindung zu warten.",
+    "connectionType": "Verbindung",
+    "retry": "Erneut versuchen",
+    "reconnected": "Wieder online",
+    "reconnectedDescription": "Ihre Internetverbindung wurde wiederhergestellt."
+  },
+  "resume": {
+    "title": "Download fortsetzen",
+    "description": "Ein teilweiser Download wurde gefunden. Möchten Sie fortfahren?",
+    "resumeButton": "Fortsetzen",
+    "restartButton": "Neu starten",
+    "partialFile": "Teildatei",
+    "downloaded": "Heruntergeladen",
+    "resuming": "Download wird fortgesetzt...",
+    "resumed": "Download fortgesetzt"
   }
 }

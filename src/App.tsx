@@ -1,6 +1,6 @@
-import { useState, useCallback, useEffect, useRef, memo } from "react";
+import { useState, useCallback, useEffect, useRef, memo, lazy, Suspense } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Settings, Bell, ListOrdered, History, ListVideo } from "lucide-react";
+import { Settings, Bell, ListOrdered, History, ListVideo, FileText, Clock, Upload } from "lucide-react";
 import { invoke } from "@tauri-apps/api/core";
 // Note: Notification support requires @tauri-apps/plugin-notification to be installed
 // import { sendNotification, isPermissionGranted, requestPermission } from "@tauri-apps/plugin-notification";
@@ -17,13 +17,8 @@ import { MediaInfoPreview } from "./components/MediaInfoPreview";
 import { ThemeToggle } from "./components/ThemeToggle";
 import { OpenFolderButton } from "./components/OpenFolderButton";
 import { PlayButton } from "./components/PlayButton";
-import { SettingsPanel } from "./components/SettingsPanel";
-import { QueuePanel } from "./components/QueuePanel";
-import { HistoryPanel } from "./components/HistoryPanel";
-import { PlaylistPanel } from "./components/PlaylistPanel";
-import { MissingExecutablesAlert } from "./components/MissingExecutablesAlert";
-import { OnboardingTour } from "./components/OnboardingTour";
 import { EmptyState } from "./components/EmptyState";
+import { NetworkStatusBanner } from "./components/NetworkStatusBanner";
 import { useToast } from "./components/Toast";
 import { Button } from "./components/ui/button";
 import { useKeyboardShortcuts } from "./hooks/useKeyboardShortcuts";
@@ -35,7 +30,8 @@ import { useMediaInfo } from "./hooks/useMediaInfo";
 import { usePanels } from "./hooks/usePanels";
 import { useUpdateNotification } from "./hooks/useUpdateNotification";
 import { useExecutables } from "./hooks/useExecutables";
-import { validateUrl } from "./lib/validation";
+import { useNetworkStatus } from "./hooks/useNetworkStatus";
+import { validateUrl, sanitizeUrl } from "./lib/validation";
 import {
   fadeInVariants,
   containerVariants,
@@ -44,7 +40,26 @@ import {
   defaultTransition,
   springTransition,
 } from "./lib/animations";
-import type { Format, Quality, DownloadConfig, PlaylistEntry } from "./types";
+import type { Format, Quality, DownloadConfig, PlaylistEntry, ScheduledDownload } from "./types";
+
+// Lazy loaded components for code splitting
+const SettingsPanel = lazy(() => import("./components/SettingsPanel").then(m => ({ default: m.SettingsPanel })));
+const QueuePanel = lazy(() => import("./components/QueuePanel").then(m => ({ default: m.QueuePanel })));
+const HistoryPanel = lazy(() => import("./components/HistoryPanel").then(m => ({ default: m.HistoryPanel })));
+const PlaylistPanel = lazy(() => import("./components/PlaylistPanel").then(m => ({ default: m.PlaylistPanel })));
+const MissingExecutablesAlert = lazy(() => import("./components/MissingExecutablesAlert").then(m => ({ default: m.MissingExecutablesAlert })));
+const OnboardingTour = lazy(() => import("./components/OnboardingTour").then(m => ({ default: m.OnboardingTour })));
+const BatchUrlImport = lazy(() => import("./components/BatchUrlImport").then(m => ({ default: m.BatchUrlImport })));
+const ScheduleDownload = lazy(() => import("./components/ScheduleDownload").then(m => ({ default: m.ScheduleDownload })));
+
+// Loading fallback for lazy components
+function PanelFallback() {
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
+      <div className="animate-spin h-8 w-8 border-4 border-primary border-t-transparent rounded-full" />
+    </div>
+  );
+}
 
 // Memoized header component
 const Header = memo(function Header({
@@ -120,6 +135,14 @@ function App() {
   const [quality, setQuality] = useState<Quality>("best");
   const [outputFolder, setOutputFolder] = useState("");
 
+  // Global drag & drop state
+  const [isGlobalDragOver, setIsGlobalDragOver] = useState(false);
+  
+  // Batch import & schedule modals
+  const [isBatchImportOpen, setIsBatchImportOpen] = useState(false);
+  const [isScheduleOpen, setIsScheduleOpen] = useState(false);
+  const [scheduledDownloads, setScheduledDownloads] = useState<ScheduledDownload[]>([]);
+
   // Preferences
   const { preferences, setPreferences, setOutputFolder: saveOutputFolder, setFormat: saveFormat, setQuality: saveQuality } = usePreferences();
   
@@ -140,6 +163,58 @@ function App() {
   // Media info & playlist
   const { mediaInfo, isLoadingMediaInfo, isPlaylist, playlistInfo, isLoadingPlaylist, fetchMediaInfo, handleUrlChange: onUrlChange, handlePaste: onPaste, clearMediaInfo } = useMediaInfo();
   
+  // Network status (must be before useDownload to pass isOffline)
+  const networkStatus = useNetworkStatus();
+
+  // Show toast when coming back online
+  const wasOfflineRef = useRef(!networkStatus.isOnline || !networkStatus.isConnected);
+  useEffect(() => {
+    const isCurrentlyOffline = !networkStatus.isOnline || !networkStatus.isConnected;
+    if (wasOfflineRef.current && !isCurrentlyOffline) {
+      // Just came back online
+      success(t("network.reconnected"));
+    }
+    wasOfflineRef.current = isCurrentlyOffline;
+  }, [networkStatus.isOnline, networkStatus.isConnected, success, t]);
+
+  // Load scheduled downloads from preferences
+  useEffect(() => {
+    if (preferences?.scheduledDownloads) {
+      setScheduledDownloads(preferences.scheduledDownloads);
+    }
+  }, [preferences?.scheduledDownloads]);
+
+  // Check scheduled downloads every minute
+  useEffect(() => {
+    const checkScheduled = () => {
+      const now = Date.now();
+      scheduledDownloads.forEach(async (download) => {
+        if (download.enabled && download.scheduledTime <= now) {
+          // Time to start this download
+          const config: DownloadConfig = {
+            url: download.url,
+            format: download.format,
+            quality: download.quality,
+            outputFolder: outputFolder || "",
+            embedSubtitles: preferences?.embedSubtitles ?? false,
+            cookiesFromBrowser: preferences?.cookiesFromBrowser ?? null,
+            filenameTemplate: preferences?.filenameTemplate ?? null,
+            proxyUrl: preferences?.proxyEnabled ? preferences?.proxyUrl : null,
+            cookiesFilePath: preferences?.cookiesFilePath ?? null,
+          };
+          await addToQueue(config);
+          // Remove from scheduled
+          handleRemoveScheduled(download.id);
+          info(t("schedule.started", "Scheduled download started"));
+        }
+      });
+    };
+
+    const interval = setInterval(checkScheduled, 60000); // Check every minute
+    checkScheduled(); // Check immediately on mount
+    return () => clearInterval(interval);
+  }, [scheduledDownloads, outputFolder, preferences, addToQueue, info, t]);
+
   // Download state
   const { downloadState, progress, error, downloadedFilePath, retryInfo, isDownloading, isIdle, handleDownload, handleCancel, setError } = useDownload({
     url,
@@ -151,6 +226,7 @@ function App() {
     preferences,
     fetchMediaInfo,
     addToHistory,
+    isOffline: !networkStatus.isOnline || !networkStatus.isConnected,
   });
   
   // Panels
@@ -204,10 +280,11 @@ function App() {
 
   const handleAddToQueue = useCallback(async () => {
     const validation = validateUrl(url);
-    if (!validation.isValid) return;
+    if (!validation.isValid || !validation.sanitizedUrl) return;
 
+    const sanitizedUrl = validation.sanitizedUrl;
     const config: DownloadConfig = {
-      url: url.trim(),
+      url: sanitizedUrl,
       format,
       quality,
       outputFolder: outputFolder || "",
@@ -219,18 +296,18 @@ function App() {
     };
 
     await addToQueue(config);
-    saveRecentUrl(url.trim());
+    saveRecentUrl(sanitizedUrl);
     success(t("toast.addedToQueue"));
     setUrl("");
     clearMediaInfo();
   }, [url, format, quality, outputFolder, preferences, addToQueue, clearMediaInfo, success, t]);
 
-  // Handle multiple URLs pasted at once
+  // Handle multiple URLs pasted at once (already sanitized by UrlInput)
   const handleMultipleUrls = useCallback(
     async (urls: string[]) => {
       for (const u of urls) {
         const config: DownloadConfig = {
-          url: u.trim(),
+          url: u, // Already sanitized
           format,
           quality,
           outputFolder: outputFolder || "",
@@ -268,6 +345,108 @@ function App() {
     if (config.outputFolder) setOutputFolder(config.outputFolder);
   }, []);
 
+  // Global drag & drop handlers
+  const handleGlobalDragOver = useCallback((e: React.DragEvent) => {
+    e.preventDefault();
+    if (!isDownloading) {
+      setIsGlobalDragOver(true);
+    }
+  }, [isDownloading]);
+
+  const handleGlobalDragLeave = useCallback((e: React.DragEvent) => {
+    e.preventDefault();
+    // Only hide if leaving the window
+    if (e.relatedTarget === null) {
+      setIsGlobalDragOver(false);
+    }
+  }, []);
+
+  const handleGlobalDrop = useCallback((e: React.DragEvent) => {
+    e.preventDefault();
+    setIsGlobalDragOver(false);
+    if (isDownloading) return;
+
+    // Handle dropped text (URL)
+    const text = e.dataTransfer.getData("text/plain");
+    if (text) {
+      const sanitized = sanitizeUrl(text);
+      const validation = validateUrl(sanitized);
+      if (validation.isValid && validation.sanitizedUrl) {
+        setUrl(validation.sanitizedUrl);
+        return;
+      }
+    }
+
+    // Handle dropped file (.txt with URLs)
+    const file = e.dataTransfer.files[0];
+    if (file && (file.type === "text/plain" || file.name.endsWith(".txt"))) {
+      file.text().then((content) => {
+        const lines = content.split("\n").filter(line => line.trim().length > 0);
+        if (lines.length === 1 && lines[0]) {
+          const validation = validateUrl(lines[0]);
+          if (validation.isValid && validation.sanitizedUrl) {
+            setUrl(validation.sanitizedUrl);
+          }
+        } else if (lines.length > 1) {
+          // Multiple URLs - open batch import
+          setIsBatchImportOpen(true);
+        }
+      });
+    }
+  }, [isDownloading]);
+
+  // Batch import handler
+  const handleBatchImport = useCallback(async (urls: string[]) => {
+    for (const u of urls) {
+      const config: DownloadConfig = {
+        url: u,
+        format,
+        quality,
+        outputFolder: outputFolder || "",
+        embedSubtitles: preferences?.embedSubtitles ?? false,
+        cookiesFromBrowser: preferences?.cookiesFromBrowser ?? null,
+        filenameTemplate: preferences?.filenameTemplate ?? null,
+        proxyUrl: preferences?.proxyEnabled ? preferences?.proxyUrl : null,
+        cookiesFilePath: preferences?.cookiesFilePath ?? null,
+      };
+      await addToQueue(config);
+    }
+    info(t("toast.urlsAdded", { count: urls.length }));
+    openQueue();
+  }, [format, quality, outputFolder, preferences, addToQueue, info, t, openQueue]);
+
+  // Schedule handlers
+  const handleScheduleDownload = useCallback((download: Omit<ScheduledDownload, "id">) => {
+    const newDownload: ScheduledDownload = {
+      ...download,
+      id: crypto.randomUUID(),
+    };
+    const updated = [...scheduledDownloads, newDownload];
+    setScheduledDownloads(updated);
+    if (preferences) {
+      setPreferences({ ...preferences, scheduledDownloads: updated });
+    }
+    success(t("schedule.added", "Download scheduled"));
+  }, [scheduledDownloads, preferences, setPreferences, success, t]);
+
+  const handleRemoveScheduled = useCallback((id: string) => {
+    const updated = scheduledDownloads.filter(d => d.id !== id);
+    setScheduledDownloads(updated);
+    if (preferences) {
+      setPreferences({ ...preferences, scheduledDownloads: updated });
+    }
+  }, [scheduledDownloads, preferences, setPreferences]);
+
+  const handleToggleScheduled = useCallback((id: string) => {
+    const updated = scheduledDownloads.map(d => 
+      d.id === id ? { ...d, enabled: !d.enabled } : d
+    );
+    setScheduledDownloads(updated);
+    if (preferences) {
+      setPreferences({ ...preferences, scheduledDownloads: updated });
+    }
+  }, [scheduledDownloads, preferences, setPreferences]);
+
   // Keyboard shortcuts
   useKeyboardShortcuts({
     onPaste: handlePaste,
@@ -285,7 +464,42 @@ function App() {
       transition={defaultTransition}
       role="main"
       aria-label="MediaGrab - Media Downloader"
+      onDragOver={handleGlobalDragOver}
+      onDragLeave={handleGlobalDragLeave}
+      onDrop={handleGlobalDrop}
     >
+      {/* Skip link for keyboard navigation */}
+      <a 
+        href="#main-content" 
+        className="skip-link"
+        onClick={(e) => {
+          e.preventDefault();
+          document.getElementById('url-input')?.focus();
+        }}
+      >
+        {t("a11y.skipToContent", "Skip to main content")}
+      </a>
+
+      {/* Global drag overlay */}
+      <AnimatePresence>
+        {isGlobalDragOver && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="drag-overlay"
+            role="presentation"
+            aria-hidden="true"
+          >
+            <div className="drag-overlay-content">
+              <Upload className="h-12 w-12 text-primary" aria-hidden="true" />
+              <p className="text-lg font-medium">{t("dragDrop.dropUrl", "Drop URL or .txt file here")}</p>
+              <p className="text-sm text-muted-foreground">{t("dragDrop.hint", "Drop a video URL or a text file with multiple URLs")}</p>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
       <Header
         activeCount={activeCount}
         pendingCount={pendingCount}
@@ -296,14 +510,38 @@ function App() {
         t={t}
       />
 
-      <motion.div className="mx-auto max-w-3xl px-6 py-8" variants={containerVariants} initial="initial" animate="animate">
+      <motion.div id="main-content" className="mx-auto max-w-3xl px-6 py-8" variants={containerVariants} initial="initial" animate="animate">
         <div className="space-y-6">
           {/* URL Input */}
           <motion.div variants={itemVariants}>
-            <label htmlFor="url-input" className="mb-2 block text-sm font-medium text-foreground">{t("form.videoUrl")}</label>
+            <div className="flex items-center justify-between mb-2">
+              <label htmlFor="url-input" className="block text-sm font-medium text-foreground">{t("form.videoUrl")}</label>
+              <div className="flex items-center gap-1">
+                <Button variant="ghost" size="sm" onClick={() => setIsBatchImportOpen(true)} title={t("batch.title", "Batch Import")}>
+                  <FileText className="h-4 w-4" />
+                </Button>
+                <Button variant="ghost" size="sm" onClick={() => setIsScheduleOpen(true)} title={t("schedule.title", "Schedule")}>
+                  <Clock className="h-4 w-4" />
+                  {scheduledDownloads.length > 0 && (
+                    <span className="ml-1 text-xs bg-primary text-primary-foreground rounded-full px-1.5">{scheduledDownloads.length}</span>
+                  )}
+                </Button>
+              </div>
+            </div>
             <UrlInput id="url-input" value={url} onChange={handleUrlChange} onSubmit={handleDownload} onMultipleUrls={handleMultipleUrls} disabled={isDownloading} />
           </motion.div>
           
+          {/* Network Status Banner */}
+          {(!networkStatus.isOnline || !networkStatus.isConnected || networkStatus.isDegraded) && (
+            <motion.div variants={itemVariants}>
+              <NetworkStatusBanner
+                status={networkStatus}
+                isDegraded={networkStatus.isDegraded}
+                onRetryConnection={networkStatus.checkConnectivity}
+              />
+            </motion.div>
+          )}
+
           {/* Empty State when no URL */}
           {!url && !mediaInfo && !isLoadingMediaInfo && !isPlaylist && (
             <motion.div variants={itemVariants}>
@@ -375,7 +613,15 @@ function App() {
 
           {/* Status display */}
           <motion.div variants={itemVariants}>
-            <StatusDisplay state={downloadState} error={error} cookiesEnabled={!!preferences?.cookiesFromBrowser} onOpenSettings={openSettings} onRetry={handleDownload} retryInfo={retryInfo} />
+            <StatusDisplay 
+              state={downloadState} 
+              error={error} 
+              cookiesEnabled={!!preferences?.cookiesFromBrowser} 
+              onOpenSettings={openSettings} 
+              onRetry={handleDownload} 
+              retryInfo={retryInfo}
+              isOffline={!networkStatus.isOnline || !networkStatus.isConnected}
+            />
           </motion.div>
 
           {/* Completion buttons */}
@@ -410,24 +656,47 @@ function App() {
 
       <Footer t={t} />
 
-      {/* Panels */}
-      <SettingsPanel isOpen={isSettingsOpen} onClose={closeSettings} preferences={preferences} onPreferencesChange={setPreferences} />
-      <QueuePanel isOpen={isQueueOpen} onClose={closeQueue} />
-      <HistoryPanel isOpen={isHistoryOpen} onClose={closeHistory} onRedownload={handleRedownload} />
-      <PlaylistPanel
-        isOpen={isPlaylistOpen}
-        onClose={closePlaylist}
-        playlistInfo={playlistInfo}
-        isLoading={isLoadingPlaylist}
-        onDownloadSelected={handlePlaylistDownload}
-        format={format}
-        quality={quality}
-        outputFolder={outputFolder}
-        embedSubtitles={preferences?.embedSubtitles ?? false}
-        cookiesFromBrowser={preferences?.cookiesFromBrowser ?? null}
-      />
-      <MissingExecutablesAlert missingInfo={missingExecutables} onDismiss={dismissMissingExecutables} onCopyDebugInfo={copyDebugInfo} />
-      <OnboardingTour />
+      {/* Lazy loaded panels with Suspense */}
+      <Suspense fallback={<PanelFallback />}>
+        {isSettingsOpen && <SettingsPanel isOpen={isSettingsOpen} onClose={closeSettings} preferences={preferences} onPreferencesChange={setPreferences} />}
+        {isQueueOpen && <QueuePanel isOpen={isQueueOpen} onClose={closeQueue} />}
+        {isHistoryOpen && <HistoryPanel isOpen={isHistoryOpen} onClose={closeHistory} onRedownload={handleRedownload} />}
+        {isPlaylistOpen && (
+          <PlaylistPanel
+            isOpen={isPlaylistOpen}
+            onClose={closePlaylist}
+            playlistInfo={playlistInfo}
+            isLoading={isLoadingPlaylist}
+            onDownloadSelected={handlePlaylistDownload}
+            format={format}
+            quality={quality}
+            outputFolder={outputFolder}
+            embedSubtitles={preferences?.embedSubtitles ?? false}
+            cookiesFromBrowser={preferences?.cookiesFromBrowser ?? null}
+          />
+        )}
+        {isBatchImportOpen && (
+          <BatchUrlImport
+            isOpen={isBatchImportOpen}
+            onClose={() => setIsBatchImportOpen(false)}
+            onImport={handleBatchImport}
+          />
+        )}
+        {isScheduleOpen && (
+          <ScheduleDownload
+            isOpen={isScheduleOpen}
+            onClose={() => setIsScheduleOpen(false)}
+            scheduledDownloads={scheduledDownloads}
+            onSchedule={handleScheduleDownload}
+            onRemove={handleRemoveScheduled}
+            onToggle={handleToggleScheduled}
+            currentFormat={format}
+            currentQuality={quality}
+          />
+        )}
+        {missingExecutables && <MissingExecutablesAlert missingInfo={missingExecutables} onDismiss={dismissMissingExecutables} onCopyDebugInfo={copyDebugInfo} />}
+        <OnboardingTour />
+      </Suspense>
     </motion.main>
   );
 }

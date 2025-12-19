@@ -1,6 +1,6 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { X, Settings, Cookie, Subtitles, Globe, Shield, Languages, Download, RefreshCw, CheckCircle, Palette, Sun, Moon, Monitor, FileText, RotateCcw } from "lucide-react";
+import { X, Settings, Cookie, Subtitles, Globe, Shield, Languages, Download, RefreshCw, CheckCircle, Palette, Sun, Moon, Monitor, FileText, RotateCcw, Gauge, Contrast } from "lucide-react";
 import { invoke } from "@tauri-apps/api/core";
 import { listen } from "@tauri-apps/api/event";
 import { useTranslation } from "react-i18next";
@@ -10,6 +10,7 @@ import { UpdateButton } from "./UpdateButton";
 import { CopyDebugInfoButton } from "./CopyDebugInfoButton";
 import { useTheme, ACCENT_COLORS, type AccentColor, type Theme } from "./ThemeProvider";
 import { useToast } from "./Toast";
+import { useFocusTrap } from "@/hooks/useFocusTrap";
 import { buttonVariants, springTransition, fadeInVariants, defaultTransition } from "@/lib/animations";
 import { supportedLanguages, type SupportedLanguage } from "@/i18n";
 import { cn } from "@/lib/utils";
@@ -52,12 +53,26 @@ const DEFAULT_PREFERENCES: Preferences = {
   proxyUrl: null,
   filenameTemplate: null,
   cookiesFilePath: null,
+  bandwidthLimit: null,
+  scheduledDownloads: null,
 };
+
+// Bandwidth limit presets in KB/s
+const BANDWIDTH_PRESETS = [
+  { value: 0, label: 'Unlimited' },
+  { value: 512, label: '512 KB/s' },
+  { value: 1024, label: '1 MB/s' },
+  { value: 2048, label: '2 MB/s' },
+  { value: 5120, label: '5 MB/s' },
+  { value: 10240, label: '10 MB/s' },
+];
 
 export function SettingsPanel({ isOpen, onClose, preferences, onPreferencesChange }: SettingsPanelProps) {
   const { t, i18n } = useTranslation();
-  const { theme, setTheme, accentColor, setAccentColor } = useTheme();
+  const { theme, setTheme, accentColor, setAccentColor, isHighContrast } = useTheme();
   const { success } = useToast();
+  const focusTrapRef = useFocusTrap(isOpen);
+  const closeButtonRef = useRef<HTMLButtonElement>(null);
   const [activeTab, setActiveTab] = useState<SettingsTab>("general");
   const [ytdlpVersion, setYtdlpVersion] = useState<string | null>(null);
   const [appVersion, setAppVersion] = useState<string | null>(null);
@@ -76,6 +91,7 @@ export function SettingsPanel({ isOpen, onClose, preferences, onPreferencesChang
   const [filenameTemplate, setFilenameTemplate] = useState(preferences?.filenameTemplate ?? "");
   const [checkAppUpdatesOnStartup, setCheckAppUpdatesOnStartup] = useState(preferences?.checkAppUpdatesOnStartup ?? true);
   const [cookiesFilePath, setCookiesFilePath] = useState<string>(preferences?.cookiesFilePath ?? "");
+  const [bandwidthLimit, setBandwidthLimit] = useState<number>(preferences?.bandwidthLimit ?? 0);
 
   const currentLanguage = (i18n.language?.split("-")[0] || "en") as SupportedLanguage;
 
@@ -115,6 +131,7 @@ export function SettingsPanel({ isOpen, onClose, preferences, onPreferencesChang
       setCheckAppUpdatesOnStartup(preferences.checkAppUpdatesOnStartup ?? true);
       setFilenameTemplate(preferences.filenameTemplate ?? "");
       setCookiesFilePath(preferences.cookiesFilePath ?? "");
+      setBandwidthLimit(preferences.bandwidthLimit ?? 0);
     }
   }, [preferences]);
 
@@ -163,6 +180,11 @@ export function SettingsPanel({ isOpen, onClose, preferences, onPreferencesChang
     savePreference("cookiesFilePath", null);
   }, [savePreference]);
 
+  const handleBandwidthChange = useCallback((value: number) => {
+    setBandwidthLimit(value);
+    savePreference("bandwidthLimit", value === 0 ? null : value);
+  }, [savePreference]);
+
   const handleCheckAppUpdate = useCallback(async () => {
     setCheckingAppUpdate(true);
     try {
@@ -191,35 +213,59 @@ export function SettingsPanel({ isOpen, onClose, preferences, onPreferencesChang
     <AnimatePresence>
       {isOpen && (
         <>
-          <motion.div className="fixed inset-0 bg-black/50 z-40" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={onClose} />
+          <motion.div 
+            className="fixed inset-0 bg-black/50 z-40" 
+            initial={{ opacity: 0 }} 
+            animate={{ opacity: 1 }} 
+            exit={{ opacity: 0 }} 
+            onClick={onClose}
+            aria-hidden="true"
+          />
           <motion.div
+            ref={focusTrapRef}
             className="fixed right-0 top-0 bottom-0 w-[480px] bg-background border-l border-border shadow-lg z-50 flex flex-col"
             initial={{ x: "100%" }} animate={{ x: 0 }} exit={{ x: "100%" }}
             transition={{ type: "spring", damping: 25, stiffness: 300 }}
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="settings-title"
           >
             {/* Header */}
             <div className="flex items-center justify-between p-4 border-b border-border">
               <div className="flex items-center gap-2">
-                <Settings className="h-5 w-5" />
-                <h2 className="text-lg font-semibold">{t("settings.title")}</h2>
+                <Settings className="h-5 w-5" aria-hidden="true" />
+                <h2 id="settings-title" className="text-lg font-semibold">{t("settings.title")}</h2>
               </div>
               <motion.div variants={buttonVariants} whileHover="hover" whileTap="tap" transition={springTransition}>
-                <Button variant="ghost" size="icon" onClick={onClose}><X className="h-4 w-4" /></Button>
+                <Button 
+                  ref={closeButtonRef}
+                  variant="ghost" 
+                  size="icon" 
+                  onClick={onClose}
+                  aria-label={t("buttons.close", "Close settings")}
+                >
+                  <X className="h-4 w-4" aria-hidden="true" />
+                </Button>
               </motion.div>
             </div>
 
             {/* Tabs */}
-            <div className="flex border-b border-border px-2">
+            <div className="flex border-b border-border px-2" role="tablist" aria-label={t("settings.tabs.label", "Settings tabs")}>
               {tabs.map((tab) => (
                 <button
                   key={tab.id}
                   onClick={() => setActiveTab(tab.id)}
+                  role="tab"
+                  aria-selected={activeTab === tab.id}
+                  aria-controls={`tabpanel-${tab.id}`}
+                  id={`tab-${tab.id}`}
+                  tabIndex={activeTab === tab.id ? 0 : -1}
                   className={cn(
                     "flex items-center gap-2 px-3 py-2.5 text-sm font-medium transition-colors relative",
                     activeTab === tab.id ? "text-primary" : "text-muted-foreground hover:text-foreground"
                   )}
                 >
-                  {tab.icon}
+                  <span aria-hidden="true">{tab.icon}</span>
                   <span className="hidden sm:inline">{t(tab.labelKey)}</span>
                   {activeTab === tab.id && (
                     <motion.div layoutId="activeTab" className="absolute bottom-0 left-0 right-0 h-0.5 bg-primary" />
@@ -229,7 +275,7 @@ export function SettingsPanel({ isOpen, onClose, preferences, onPreferencesChang
             </div>
 
             {/* Content */}
-            <div className="flex-1 overflow-y-auto p-4">
+            <div className="flex-1 overflow-y-auto p-4" role="tabpanel" id={`tabpanel-${activeTab}`} aria-labelledby={`tab-${activeTab}`}>
               <AnimatePresence mode="wait">
                 <motion.div key={activeTab} initial={{ opacity: 0, x: 10 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -10 }} transition={{ duration: 0.15 }}>
                   {activeTab === "general" && (
@@ -269,6 +315,38 @@ export function SettingsPanel({ isOpen, onClose, preferences, onPreferencesChang
                       <Section title={t("settings.embedSubtitles")} icon={<Subtitles className="h-4 w-4" />}>
                         <ToggleSwitch id="embed-subtitles" label={t("settings.embedSubtitlesDescription")} checked={embedSubtitles} onChange={handleEmbedSubtitlesToggle} />
                       </Section>
+                      <Section title={t("settings.bandwidthLimit", "Bandwidth Limit")} icon={<Gauge className="h-4 w-4" />}>
+                        <div className="space-y-3">
+                          <p className="text-xs text-muted-foreground">{t("settings.bandwidthLimitDescription", "Limit download speed to save bandwidth")}</p>
+                          <div className="flex flex-wrap gap-2">
+                            {BANDWIDTH_PRESETS.map((preset) => (
+                              <button
+                                key={preset.value}
+                                onClick={() => handleBandwidthChange(preset.value)}
+                                className={cn(
+                                  "px-3 py-1.5 text-sm rounded-md border transition-colors",
+                                  bandwidthLimit === preset.value
+                                    ? "border-primary bg-primary/10 text-primary"
+                                    : "border-border hover:border-muted-foreground/50"
+                                )}
+                              >
+                                {preset.label}
+                              </button>
+                            ))}
+                          </div>
+                          <div className="flex items-center gap-2">
+                            <input
+                              type="number"
+                              value={bandwidthLimit || ''}
+                              onChange={(e) => handleBandwidthChange(parseInt(e.target.value) || 0)}
+                              placeholder="Custom (KB/s)"
+                              min="0"
+                              className="w-32 rounded-md border border-input bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ring"
+                            />
+                            <span className="text-sm text-muted-foreground">KB/s</span>
+                          </div>
+                        </div>
+                      </Section>
                       <Section title={t("settings.filenameTemplate")} icon={<FileText className="h-4 w-4" />}>
                         <div className="space-y-3">
                           <p className="text-xs text-muted-foreground">{t("settings.filenameTemplateDescription")}</p>
@@ -292,19 +370,22 @@ export function SettingsPanel({ isOpen, onClose, preferences, onPreferencesChang
                   {activeTab === "appearance" && (
                     <div className="space-y-6">
                       <Section title={t("settings.themeMode")} icon={<Palette className="h-4 w-4" />}>
-                        <div className="flex gap-2">
+                        <div className="grid grid-cols-2 gap-2">
                           <ThemeModeButton mode="light" currentMode={theme} onClick={() => setTheme("light")} icon={<Sun className="h-4 w-4" />} label={t("settings.themeLight")} />
                           <ThemeModeButton mode="dark" currentMode={theme} onClick={() => setTheme("dark")} icon={<Moon className="h-4 w-4" />} label={t("settings.themeDark")} />
                           <ThemeModeButton mode="system" currentMode={theme} onClick={() => setTheme("system")} icon={<Monitor className="h-4 w-4" />} label={t("settings.themeSystem")} />
+                          <ThemeModeButton mode="high-contrast" currentMode={theme} onClick={() => setTheme("high-contrast")} icon={<Contrast className="h-4 w-4" />} label={t("settings.themeHighContrast", "High Contrast")} />
                         </div>
                       </Section>
-                      <Section title={t("settings.accentColor")}>
-                        <div className="flex flex-wrap gap-2">
-                          {ACCENT_COLORS.map((color) => (
-                            <AccentColorButton key={color.name} color={color.name} hsl={color.hsl} isSelected={accentColor === color.name} onClick={() => setAccentColor(color.name)} label={t(`settings.colors.${color.name}`)} />
-                          ))}
-                        </div>
-                      </Section>
+                      {!isHighContrast && (
+                        <Section title={t("settings.accentColor")}>
+                          <div className="flex flex-wrap gap-2" role="radiogroup" aria-label={t("settings.accentColor")}>
+                            {ACCENT_COLORS.map((color) => (
+                              <AccentColorButton key={color.name} color={color.name} hsl={color.hsl} isSelected={accentColor === color.name} onClick={() => setAccentColor(color.name)} label={t(`settings.colors.${color.name}`)} />
+                            ))}
+                          </div>
+                        </Section>
+                      )}
                     </div>
                   )}
 
@@ -405,9 +486,31 @@ function Section({ title, icon, children }: { title: string; icon?: React.ReactN
 function ToggleSwitch({ id, label, checked, onChange }: { id: string; label: string; checked: boolean; onChange: () => void }) {
   return (
     <div className="flex items-center justify-between">
-      <label htmlFor={id} className="text-sm text-muted-foreground cursor-pointer">{label}</label>
-      <button id={id} role="switch" aria-checked={checked} onClick={onChange} className={`relative inline-flex h-5 w-9 items-center rounded-full transition-colors ${checked ? 'bg-primary' : 'bg-muted'}`}>
-        <span className={`inline-block h-4 w-4 transform rounded-full bg-background transition-transform ${checked ? 'translate-x-4' : 'translate-x-0.5'}`} />
+      <label htmlFor={id} className="text-sm text-muted-foreground cursor-pointer flex-1 pr-4">{label}</label>
+      <button 
+        id={id} 
+        type="button"
+        role="switch" 
+        aria-checked={checked}
+        aria-label={label}
+        onClick={onChange} 
+        onKeyDown={(e) => {
+          if (e.key === 'Enter' || e.key === ' ') {
+            e.preventDefault();
+            onChange();
+          }
+        }}
+        className={cn(
+          "relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2",
+          checked ? 'bg-primary' : 'bg-muted'
+        )}
+      >
+        <span 
+          className={cn(
+            "inline-block h-5 w-5 transform rounded-full bg-background shadow-sm transition-transform",
+            checked ? 'translate-x-5' : 'translate-x-0.5'
+          )} 
+        />
       </button>
     </div>
   );
@@ -416,8 +519,19 @@ function ToggleSwitch({ id, label, checked, onChange }: { id: string; label: str
 function ThemeModeButton({ mode, currentMode, onClick, icon, label }: { mode: Theme; currentMode: Theme; onClick: () => void; icon: React.ReactNode; label: string }) {
   const isSelected = mode === currentMode;
   return (
-    <button onClick={onClick} className={`flex-1 flex flex-col items-center gap-1 p-2 rounded-lg border transition-all ${isSelected ? 'border-primary bg-primary/10 text-primary' : 'border-border hover:border-muted-foreground/50 text-muted-foreground hover:text-foreground'}`} aria-pressed={isSelected}>
-      {icon}
+    <button 
+      onClick={onClick} 
+      className={cn(
+        "flex flex-col items-center gap-1 p-3 rounded-lg border transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2",
+        isSelected 
+          ? 'border-primary bg-primary/10 text-primary' 
+          : 'border-border hover:border-muted-foreground/50 text-muted-foreground hover:text-foreground'
+      )} 
+      role="radio"
+      aria-checked={isSelected}
+      aria-label={label}
+    >
+      <span aria-hidden="true">{icon}</span>
       <span className="text-xs">{label}</span>
     </button>
   );
@@ -425,8 +539,19 @@ function ThemeModeButton({ mode, currentMode, onClick, icon, label }: { mode: Th
 
 function AccentColorButton({ hsl, isSelected, onClick, label }: { color: AccentColor; hsl: string; isSelected: boolean; onClick: () => void; label: string }) {
   return (
-    <button onClick={onClick} className={`w-8 h-8 rounded-full transition-all relative ${isSelected ? 'ring-2 ring-offset-2 ring-offset-background ring-foreground scale-110' : 'hover:scale-105'}`} style={{ backgroundColor: `hsl(${hsl})` }} aria-label={label} aria-pressed={isSelected} title={label}>
-      {isSelected && <CheckCircle className="h-4 w-4 text-white absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 drop-shadow-md" />}
+    <button 
+      onClick={onClick} 
+      className={cn(
+        "w-8 h-8 rounded-full transition-all relative focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2",
+        isSelected ? 'ring-2 ring-offset-2 ring-offset-background ring-foreground scale-110' : 'hover:scale-105'
+      )} 
+      style={{ backgroundColor: `hsl(${hsl})` }} 
+      role="radio"
+      aria-checked={isSelected}
+      aria-label={label} 
+      title={label}
+    >
+      {isSelected && <CheckCircle className="h-4 w-4 text-white absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 drop-shadow-md" aria-hidden="true" />}
     </button>
   );
 }

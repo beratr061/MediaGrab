@@ -30,6 +30,8 @@ const preferencesArbitrary = fc.record({
   proxyUrl: fc.option(fc.string(), { nil: null }),
   filenameTemplate: fc.option(fc.string(), { nil: null }),
   cookiesFilePath: fc.option(fc.string(), { nil: null }),
+  bandwidthLimit: fc.option(fc.integer({ min: 0, max: 100000 }), { nil: null }),
+  scheduledDownloads: fc.constant(null),
 });
 
 describe('Preferences Round-Trip - Property Tests', () => {
@@ -87,6 +89,8 @@ describe('Preferences Round-Trip - Property Tests', () => {
             proxyUrl: null,
             filenameTemplate: null,
             cookiesFilePath: null,
+            bandwidthLimit: null,
+            scheduledDownloads: null,
           };
           
           const json = JSON.stringify(prefs);
@@ -116,6 +120,8 @@ describe('Preferences Round-Trip - Property Tests', () => {
             proxyUrl: null,
             filenameTemplate: null,
             cookiesFilePath: null,
+            bandwidthLimit: null,
+            scheduledDownloads: null,
           };
           
           const json = JSON.stringify(prefs);
@@ -145,6 +151,8 @@ describe('Preferences Round-Trip - Property Tests', () => {
             proxyUrl: null,
             filenameTemplate: null,
             cookiesFilePath: null,
+            bandwidthLimit: null,
+            scheduledDownloads: null,
           };
           
           const json = JSON.stringify(prefs);
@@ -170,6 +178,8 @@ describe('Preferences Round-Trip - Property Tests', () => {
       proxyUrl: null,
       filenameTemplate: null,
       cookiesFilePath: null,
+      bandwidthLimit: null,
+      scheduledDownloads: null,
     };
     
     const json = JSON.stringify(prefs);
@@ -194,6 +204,8 @@ describe('Preferences Round-Trip - Property Tests', () => {
         proxyUrl: null,
         filenameTemplate: null,
         cookiesFilePath: null,
+        bandwidthLimit: null,
+        scheduledDownloads: null,
       };
       
       const json = JSON.stringify(prefs);

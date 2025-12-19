@@ -1,8 +1,9 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { User, Clock, HardDrive, Image as ImageIcon } from "lucide-react";
 import { slideUpVariants, defaultTransition } from "@/lib/animations";
 import { cn } from "@/lib/utils";
+import { useThumbnailCache } from "@/hooks/useThumbnailCache";
 import type { MediaInfo } from "@/types";
 
 interface MediaInfoPreviewProps {
@@ -104,25 +105,38 @@ function LoadingSkeleton() {
 
 function MediaInfoContent({ mediaInfo }: { mediaInfo: MediaInfo }) {
   const [showLargeThumbnail, setShowLargeThumbnail] = useState(false);
+  const [cachedThumbnail, setCachedThumbnail] = useState<string | null>(null);
+  const [thumbnailError, setThumbnailError] = useState(false);
+  const { getCachedThumbnail } = useThumbnailCache();
+
+  // Load and cache thumbnail
+  useEffect(() => {
+    if (mediaInfo.thumbnail) {
+      setThumbnailError(false);
+      getCachedThumbnail(mediaInfo.thumbnail).then(cached => {
+        if (cached) setCachedThumbnail(cached);
+        else setCachedThumbnail(mediaInfo.thumbnail); // Fallback to original URL
+      });
+    }
+  }, [mediaInfo.thumbnail, getCachedThumbnail]);
+
+  const thumbnailSrc = cachedThumbnail || mediaInfo.thumbnail;
   
   return (
     <div className="flex gap-4">
       {/* Thumbnail with hover preview */}
       <div 
         className="h-20 w-32 shrink-0 overflow-hidden rounded-md bg-muted relative group cursor-pointer"
-        onMouseEnter={() => mediaInfo.thumbnail && setShowLargeThumbnail(true)}
+        onMouseEnter={() => thumbnailSrc && !thumbnailError && setShowLargeThumbnail(true)}
         onMouseLeave={() => setShowLargeThumbnail(false)}
       >
-        {mediaInfo.thumbnail ? (
+        {thumbnailSrc && !thumbnailError ? (
           <>
             <img
-              src={mediaInfo.thumbnail}
+              src={thumbnailSrc}
               alt={mediaInfo.title}
               className="h-full w-full object-cover transition-transform group-hover:scale-105"
-              onError={(e) => {
-                e.currentTarget.style.display = "none";
-                e.currentTarget.nextElementSibling?.classList.remove("hidden");
-              }}
+              onError={() => setThumbnailError(true)}
             />
             {/* Enlarged thumbnail on hover */}
             <AnimatePresence>
@@ -133,7 +147,7 @@ function MediaInfoContent({ mediaInfo }: { mediaInfo: MediaInfo }) {
                   exit={{ opacity: 0, scale: 0.9 }}
                   className="absolute left-0 top-full mt-2 z-50 rounded-lg overflow-hidden shadow-xl border border-border"
                 >
-                  <img src={mediaInfo.thumbnail} alt={mediaInfo.title} className="w-80 h-auto" />
+                  <img src={thumbnailSrc} alt={mediaInfo.title} className="w-80 h-auto" />
                 </motion.div>
               )}
             </AnimatePresence>
@@ -141,7 +155,7 @@ function MediaInfoContent({ mediaInfo }: { mediaInfo: MediaInfo }) {
         ) : null}
         <div className={cn(
           "flex h-full w-full items-center justify-center text-muted-foreground",
-          mediaInfo.thumbnail ? "hidden" : ""
+          thumbnailSrc && !thumbnailError ? "hidden" : ""
         )}>
           <ImageIcon className="h-8 w-8" />
         </div>

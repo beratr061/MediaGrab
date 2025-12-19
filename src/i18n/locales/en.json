@@ -265,5 +265,25 @@
     "en": "English",
     "tr": "Türkçe",
     "de": "Deutsch"
+  },
+  "network": {
+    "offline": "You're offline",
+    "offlineDescription": "Check your internet connection. Downloads will resume when you're back online.",
+    "slowConnection": "Slow connection detected",
+    "slowDescription": "Downloads may be slower than usual. Consider waiting for a better connection.",
+    "connectionType": "Connection",
+    "retry": "Retry",
+    "reconnected": "Back online",
+    "reconnectedDescription": "Your internet connection has been restored."
+  },
+  "resume": {
+    "title": "Resume Download",
+    "description": "A partial download was found. Would you like to resume?",
+    "resumeButton": "Resume",
+    "restartButton": "Start Over",
+    "partialFile": "Partial file",
+    "downloaded": "Downloaded",
+    "resuming": "Resuming download...",
+    "resumed": "Download resumed"
   }
 }

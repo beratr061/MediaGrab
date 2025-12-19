@@ -12,8 +12,10 @@ import {
   Wifi,
   Lock,
   Globe,
-  FileQuestion
+  FileQuestion,
+  WifiOff
 } from "lucide-react";
+import { useTranslation } from "react-i18next";
 import { slideUpVariants, defaultTransition, buttonVariants, springTransition } from "@/lib/animations";
 import { cn } from "@/lib/utils";
 import { Button } from "./ui/button";
@@ -54,6 +56,8 @@ interface StatusDisplayProps {
   onRetry?: () => void;
   /** Current retry information (if retrying) */
   retryInfo?: RetryEvent | null;
+  /** Whether the user is currently offline */
+  isOffline?: boolean;
 }
 
 interface StatusConfig {
@@ -230,15 +234,17 @@ export function StatusDisplay({
   cookiesEnabled = false,
   onOpenSettings,
   onRetry,
-  retryInfo
+  retryInfo,
+  isOffline = false
 }: StatusDisplayProps) {
+  const { t } = useTranslation();
   const config = statusConfigs[state];
   const Icon = config.icon;
   const errorInfo = error ? categorizeError(error) : null;
   
   // Override message if retrying
   const displayMessage = retryInfo 
-    ? `Retrying... (${retryInfo.attempt}/${retryInfo.maxRetries})`
+    ? t("status.retrying", { attempt: retryInfo.attempt, maxRetries: retryInfo.maxRetries })
     : config.message;
   
   // Check if this is an auth error and cookies are not enabled
@@ -253,7 +259,8 @@ export function StatusDisplay({
   const showRetryButton = 
     state === "failed" && 
     errorInfo?.isRetryable && 
-    onRetry;
+    onRetry &&
+    !isOffline; // Don't show retry if offline
 
   return (
     <AnimatePresence mode="wait">
@@ -271,6 +278,28 @@ export function StatusDisplay({
           <span className="font-medium">{displayMessage}</span>
         </div>
         
+        {/* Offline warning during download */}
+        {isOffline && (state === "downloading" || state === "starting") && (
+          <motion.div
+            variants={slideUpVariants}
+            initial="initial"
+            animate="animate"
+            className="mt-2 p-3 rounded-lg bg-destructive/10 border border-destructive/20"
+          >
+            <div className="flex items-start gap-3">
+              <WifiOff className="h-5 w-5 text-destructive mt-0.5 shrink-0" />
+              <div className="flex-1 space-y-1">
+                <p className="text-sm text-foreground font-medium">
+                  {t("network.offline")}
+                </p>
+                <p className="text-xs text-muted-foreground">
+                  {t("network.offlineDescription")}
+                </p>
+              </div>
+            </div>
+          </motion.div>
+        )}
+        
         {/* Retry info banner */}
         {retryInfo && (
           <motion.div
@@ -283,10 +312,14 @@ export function StatusDisplay({
               <RefreshCw className="h-5 w-5 text-warning mt-0.5 shrink-0 animate-spin" />
               <div className="flex-1 space-y-1">
                 <p className="text-sm text-foreground font-medium">
-                  Automatic retry in progress
+                  {t("retry.title")}
                 </p>
                 <p className="text-xs text-muted-foreground">
-                  Attempt {retryInfo.attempt} of {retryInfo.maxRetries} • Waiting {Math.round(retryInfo.delayMs / 1000)}s before retry
+                  {t("retry.info", { 
+                    attempt: retryInfo.attempt, 
+                    maxRetries: retryInfo.maxRetries,
+                    delay: Math.round(retryInfo.delayMs / 1000)
+                  })}
                 </p>
                 <p className="text-xs text-muted-foreground font-mono">
                   {retryInfo.error}

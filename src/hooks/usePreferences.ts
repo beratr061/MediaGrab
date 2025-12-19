@@ -42,6 +42,8 @@ export function usePreferences() {
         proxyUrl: null,
         filenameTemplate: null,
         cookiesFilePath: null,
+        bandwidthLimit: null,
+        scheduledDownloads: null,
       });
     } finally {
       setLoading(false);

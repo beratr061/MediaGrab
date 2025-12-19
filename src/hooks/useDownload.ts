@@ -37,6 +37,8 @@ interface UseDownloadOptions {
     status: "completed" | "failed",
     error: string | null
   ) => Promise<unknown>;
+  /** Whether the user is currently offline */
+  isOffline?: boolean;
 }
 
 interface UseDownloadReturn {
@@ -63,6 +65,7 @@ export function useDownload({
   preferences,
   fetchMediaInfo,
   addToHistory,
+  isOffline = false,
 }: UseDownloadOptions): UseDownloadReturn {
   const [downloadState, setDownloadState] = useState<DownloadState>("idle");
   const [progress, setProgress] = useState<ProgressEvent | null>(null);
@@ -184,6 +187,12 @@ export function useDownload({
   }, [addToHistory]);
 
   const handleDownload = useCallback(async () => {
+    // Check if offline
+    if (isOffline) {
+      setError("You're offline. Please check your internet connection.");
+      return;
+    }
+
     const validation = validateUrl(url);
     if (!validation.isValid) {
       return;
@@ -260,7 +269,7 @@ export function useDownload({
       setError(err instanceof Error ? err.message : String(err));
       setDownloadState("failed");
     }
-  }, [url, format, quality, outputFolder, mediaInfo, isLoadingMediaInfo, fetchMediaInfo, preferences]);
+  }, [url, format, quality, outputFolder, mediaInfo, isLoadingMediaInfo, fetchMediaInfo, preferences, isOffline]);
 
   const handleCancel = useCallback(async () => {
     if (downloadState === "cancelling") return;

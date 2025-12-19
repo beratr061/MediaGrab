@@ -264,5 +264,25 @@
     "en": "English",
     "tr": "Türkçe",
     "de": "Deutsch"
+  },
+  "network": {
+    "offline": "Çevrimdışısınız",
+    "offlineDescription": "İnternet bağlantınızı kontrol edin. Tekrar çevrimiçi olduğunuzda indirmeler devam edecek.",
+    "slowConnection": "Yavaş bağlantı algılandı",
+    "slowDescription": "İndirmeler normalden yavaş olabilir. Daha iyi bir bağlantı beklemeyi düşünün.",
+    "connectionType": "Bağlantı",
+    "retry": "Tekrar Dene",
+    "reconnected": "Tekrar çevrimiçi",
+    "reconnectedDescription": "İnternet bağlantınız yeniden kuruldu."
+  },
+  "resume": {
+    "title": "İndirmeyi Devam Ettir",
+    "description": "Yarım kalmış bir indirme bulundu. Devam etmek ister misiniz?",
+    "resumeButton": "Devam Et",
+    "restartButton": "Baştan Başla",
+    "partialFile": "Kısmi dosya",
+    "downloaded": "İndirildi",
+    "resuming": "İndirme devam ettiriliyor...",
+    "resumed": "İndirme devam etti"
   }
 }

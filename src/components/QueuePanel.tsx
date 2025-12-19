@@ -1,13 +1,17 @@
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useRef } from 'react';
 import { motion, AnimatePresence, Reorder } from 'framer-motion';
 import { X, CheckCircle, XCircle, Clock, Loader2, FolderOpen, ListX, Pause, Play, CheckSquare, Square } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
+import { useVirtualizer } from '@tanstack/react-virtual';
 import { Button } from './ui/button';
 import { QueueItemCard } from './QueueItemCard';
 import { SkeletonQueueItem, SkeletonList } from './Skeleton';
 import { useQueue } from '@/hooks/useQueue';
 import { cn } from '@/lib/utils';
 import type { QueueItem } from '@/types';
+
+// Threshold for enabling virtualization
+const VIRTUALIZATION_THRESHOLD = 20;
 
 interface QueuePanelProps {
   isOpen: boolean;
@@ -19,11 +23,29 @@ export function QueuePanel({ isOpen, onClose }: QueuePanelProps) {
   const { items, isLoading, cancelItem, removeItem, clearCompleted, moveUp, moveDown, reorderItems, pauseAll, resumeAll, pendingCount, activeCount, completedCount, failedCount } = useQueue();
   const [selectedIds, setSelectedIds] = useState<Set<number>>(new Set());
   const [isDragging, setIsDragging] = useState(false);
+  const parentRef = useRef<HTMLDivElement>(null);
 
   const hasCompletedOrFailed = completedCount > 0 || failedCount > 0;
   const hasPending = pendingCount > 0;
   const hasActive = activeCount > 0;
   const hasSelection = selectedIds.size > 0;
+
+  // Separate items by status
+  const pendingItems = items.filter(i => i.status === 'pending');
+  const activeItems = items.filter(i => i.status === 'downloading' || i.status === 'merging');
+  const terminalItems = items.filter(i => i.status === 'completed' || i.status === 'failed' || i.status === 'cancelled');
+
+  // Use virtualization only when there are many items
+  const useVirtualization = items.length > VIRTUALIZATION_THRESHOLD;
+
+  // Virtualizer for terminal items (completed/failed - usually the longest list)
+  const terminalVirtualizer = useVirtualizer({
+    count: terminalItems.length,
+    getScrollElement: () => parentRef.current,
+    estimateSize: () => 100, // Estimated item height
+    overscan: 5,
+    enabled: useVirtualization && terminalItems.length > 10,
+  });
 
   // Calculate estimated total time
   const estimatedTotalTime = items.filter(i => i.status === 'pending' || i.status === 'downloading').reduce((acc, item) => acc + (item.etaSeconds || 0), 0);
@@ -65,11 +87,6 @@ export function QueuePanel({ isOpen, onClose }: QueuePanelProps) {
       reorderItems(newOrder.map(i => i.id));
     }
   }, [reorderItems]);
-
-  // Separate items by status for drag constraints
-  const pendingItems = items.filter(i => i.status === 'pending');
-  const activeItems = items.filter(i => i.status === 'downloading' || i.status === 'merging');
-  const terminalItems = items.filter(i => i.status === 'completed' || i.status === 'failed' || i.status === 'cancelled');
 
   return (
     <AnimatePresence>
@@ -124,7 +141,7 @@ export function QueuePanel({ isOpen, onClose }: QueuePanelProps) {
             )}
 
             {/* Queue Items */}
-            <div className="flex-1 overflow-y-auto p-4">
+            <div className="flex-1 overflow-y-auto p-4" ref={parentRef}>
               {isLoading ? (
                 <SkeletonList count={3} ItemComponent={SkeletonQueueItem} />
               ) : items.length === 0 ? (
@@ -160,14 +177,44 @@ export function QueuePanel({ isOpen, onClose }: QueuePanelProps) {
                     </Reorder.Group>
                   )}
 
-                  {/* Terminal items */}
-                  <AnimatePresence mode="popLayout">
-                    {terminalItems.map((item) => (
-                      <motion.div key={item.id} layout initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, x: -100 }} transition={{ duration: 0.2 }}>
-                        <QueueItemCard item={item} onCancel={() => cancelItem(item.id)} onRemove={() => removeItem(item.id)} />
-                      </motion.div>
-                    ))}
-                  </AnimatePresence>
+                  {/* Terminal items - virtualized when many items */}
+                  {useVirtualization && terminalItems.length > 10 ? (
+                    <div
+                      style={{
+                        height: `${terminalVirtualizer.getTotalSize()}px`,
+                        width: '100%',
+                        position: 'relative',
+                      }}
+                    >
+                      {terminalVirtualizer.getVirtualItems().map((virtualItem) => {
+                        const item = terminalItems[virtualItem.index];
+                        if (!item) return null;
+                        return (
+                          <div
+                            key={item.id}
+                            style={{
+                              position: 'absolute',
+                              top: 0,
+                              left: 0,
+                              width: '100%',
+                              height: `${virtualItem.size}px`,
+                              transform: `translateY(${virtualItem.start}px)`,
+                            }}
+                          >
+                            <QueueItemCard item={item} onCancel={() => cancelItem(item.id)} onRemove={() => removeItem(item.id)} />
+                          </div>
+                        );
+                      })}
+                    </div>
+                  ) : (
+                    <AnimatePresence mode="popLayout">
+                      {terminalItems.map((item) => (
+                        <motion.div key={item.id} layout initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, x: -100 }} transition={{ duration: 0.2 }}>
+                          <QueueItemCard item={item} onCancel={() => cancelItem(item.id)} onRemove={() => removeItem(item.id)} />
+                        </motion.div>
+                      ))}
+                    </AnimatePresence>
+                  )}
                 </div>
               )}
             </div>

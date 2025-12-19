@@ -88,6 +88,20 @@ export interface Preferences {
   filenameTemplate: string | null; // e.g., "{title} - {uploader} [{quality}]"
   // Custom cookies file
   cookiesFilePath: string | null; // Path to cookies.txt file (Netscape format)
+  // Bandwidth limiting (KB/s, 0 = unlimited)
+  bandwidthLimit: number | null;
+  // Scheduled downloads
+  scheduledDownloads: ScheduledDownload[] | null;
+}
+
+// Scheduled download configuration
+export interface ScheduledDownload {
+  id: string;
+  url: string;
+  format: Format;
+  quality: Quality;
+  scheduledTime: number; // Unix timestamp
+  enabled: boolean;
 }
 
 // Disk space information from backend

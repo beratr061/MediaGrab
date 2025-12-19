@@ -1,7 +1,7 @@
 import { useState, useRef, useEffect, type DragEvent, type ChangeEvent, type KeyboardEvent } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Link, AlertCircle, Clipboard, ChevronDown, Clock, X } from "lucide-react";
-import { validateUrl } from "@/lib/validation";
+import { validateUrl, sanitizeUrl } from "@/lib/validation";
 import { cn } from "@/lib/utils";
 import { fadeInVariants, defaultTransition } from "@/lib/animations";
 import { PlatformIcon, detectPlatform, type Platform } from "./PlatformIcon";
@@ -134,8 +134,10 @@ export function UrlInput({
   const handleKeyDown = (e: KeyboardEvent<HTMLInputElement>) => {
     if (e.key === "Enter" && onSubmit && !disabled) {
       const result = validateUrl(value);
-      if (result.isValid) {
-        saveRecentUrl(value.trim());
+      if (result.isValid && result.sanitizedUrl) {
+        // Use sanitized URL
+        onChange(result.sanitizedUrl);
+        saveRecentUrl(result.sanitizedUrl);
         setRecentUrls(getRecentUrls());
         onSubmit();
       } else {
@@ -187,19 +189,23 @@ export function UrlInput({
 
   const handleTextInput = (text: string) => {
     const trimmed = text.trim();
-    const lines = trimmed.split(/[\n\r]+/).map((l) => l.trim()).filter((l) => l.length > 0);
+    const lines = trimmed.split(/[\n\r]+/).map((l) => sanitizeUrl(l)).filter((l) => l.length > 0);
     
     // Check if multiple URLs
     if (lines.length > 1 && onMultipleUrls) {
-      const validUrls = lines.filter((line) => validateUrl(line).isValid);
+      const validUrls = lines
+        .map((line) => validateUrl(line))
+        .filter((result) => result.isValid && result.sanitizedUrl)
+        .map((result) => result.sanitizedUrl!);
       if (validUrls.length > 1) {
         onMultipleUrls(validUrls);
         return;
       }
     }
     
-    // Single URL
-    onChange(trimmed);
+    // Single URL - sanitize before setting
+    const result = validateUrl(trimmed);
+    onChange(result.sanitizedUrl || trimmed);
     setShowPasteHint(false);
     setShowDropdown(false);
     setTouched(true);
