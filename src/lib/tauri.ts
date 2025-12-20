@@ -10,6 +10,7 @@ export { isTauri };
 
 // Invoke wrapper
 export async function invoke<T>(cmd: string, args?: Record<string, unknown>): Promise<T> {
+  console.log(`[Tauri] isTauri=${isTauri}, cmd=${cmd}`);
   if (isTauri) {
     const { invoke: tauriInvoke } = await import('@tauri-apps/api/core');
     return tauriInvoke<T>(cmd, args);
