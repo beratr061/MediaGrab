@@ -210,15 +210,6 @@ pub async fn stream_process_output(
             }
         }
     });
-                        }
-                    } else {
-                        buffer.push(byte[0]);
-                    }
-                }
-                Err(_) => break,
-            }
-        }
-    });
     
     // Spawn task to read stderr
     // **Validates: Requirements 10.1**

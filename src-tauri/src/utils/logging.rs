@@ -217,8 +217,7 @@ pub fn log_ytdlp_command(args: &[String]) {
 ///
 /// **Validates: Requirements 10.1**
 pub fn log_ytdlp_stdout(line: &str) {
-    // Using info level temporarily to debug progress parsing issues
-    tracing::info!(target: "mediagrab::ytdlp::stdout", "{}", line);
+    tracing::debug!(target: "mediagrab::ytdlp::stdout", "{}", line);
 }
 
 /// Logs yt-dlp stderr output
