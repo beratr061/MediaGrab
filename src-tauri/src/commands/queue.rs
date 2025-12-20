@@ -362,17 +362,33 @@ fn find_latest_file_sync(folder: &str) -> Option<String> {
     }
 
     let entries = fs::read_dir(path).ok()?;
+    
+    // Valid media extensions
+    let media_extensions = [
+        ".mp4", ".mkv", ".webm", ".avi", ".mov", ".flv",
+        ".mp3", ".m4a", ".aac", ".opus", ".flac", ".wav", ".ogg"
+    ];
+    
     let mut latest: Option<(std::time::SystemTime, String)> = None;
 
     for entry in entries.flatten() {
         let metadata = entry.metadata().ok()?;
         if metadata.is_file() {
-            let modified = metadata.modified().ok()?;
             let path_str = entry.path().to_string_lossy().to_string();
+            let path_lower = path_str.to_lowercase();
 
-            if path_str.ends_with(".part") || path_str.ends_with(".ytdl") {
+            // Skip partial files and non-media files
+            if path_lower.ends_with(".part") || path_lower.ends_with(".ytdl") {
                 continue;
             }
+            
+            // Only accept media files
+            let is_media = media_extensions.iter().any(|ext| path_lower.ends_with(ext));
+            if !is_media {
+                continue;
+            }
+
+            let modified = metadata.modified().ok()?;
 
             match &latest {
                 None => latest = Some((modified, path_str)),
