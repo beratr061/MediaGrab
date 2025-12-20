@@ -127,50 +127,126 @@ pub async fn stream_process_output(
     mut child: Child,
     tx: mpsc::Sender<ProcessOutput>,
 ) -> Result<(), DownloadError> {
-    let stdout = child.stdout.take()
-        .ok_or_else(|| DownloadError::ProcessSpawnError("Failed to capture stdout".to_string()))?;
-    let stderr = child.stderr.take()
-        .ok_or_else(|| DownloadError::ProcessSpawnError("Failed to capture stderr".to_string()))?;
+    tracing::info!("stream_process_output: Starting to capture process output");
     
-    let mut stdout_reader = BufReader::new(stdout).lines();
+    let stdout = match child.stdout.take() {
+        Some(stdout) => {
+            tracing::info!("stream_process_output: stdout captured successfully");
+            stdout
+        }
+        None => {
+            tracing::error!("stream_process_output: Failed to capture stdout - it was None!");
+            return Err(DownloadError::ProcessSpawnError("Failed to capture stdout".to_string()));
+        }
+    };
+    
+    let stderr = match child.stderr.take() {
+        Some(stderr) => {
+            tracing::info!("stream_process_output: stderr captured successfully");
+            stderr
+        }
+        None => {
+            tracing::error!("stream_process_output: Failed to capture stderr - it was None!");
+            return Err(DownloadError::ProcessSpawnError("Failed to capture stderr".to_string()));
+        }
+    };
+    
     let mut stderr_reader = BufReader::new(stderr).lines();
+    
+    tracing::info!("stream_process_output: Created buffered readers, starting read tasks");
     
     let tx_stdout = tx.clone();
     let tx_stderr = tx.clone();
     
     // Spawn task to read stdout
+    // Note: yt-dlp uses \r for progress updates on Windows, so we need custom line handling
     // **Validates: Requirements 10.1**
     let stdout_task = tokio::spawn(async move {
-        while let Ok(Some(line)) = stdout_reader.next_line().await {
-            // Log stdout output
-            log_ytdlp_stdout(&line);
-            
-            match parse_progress_line(&line) {
-                ParsedLine::Progress(event) => {
-                    let _ = tx_stdout.send(ProcessOutput::Progress(event)).await;
-                }
-                ParsedLine::Merging => {
-                    let _ = tx_stdout.send(ProcessOutput::Merging).await;
-                }
-                ParsedLine::Unknown => {
-                    // Check if this line is the final filepath from --print after_move:filepath
-                    // The filepath is printed as a plain line (absolute path) after download completes
-                    let trimmed = line.trim();
-                    if !trimmed.is_empty() && is_valid_filepath(trimmed) {
-                        let _ = tx_stdout.send(ProcessOutput::FilePath(trimmed.to_string())).await;
+        use tokio::io::AsyncReadExt;
+        let mut buffer = Vec::new();
+        let mut byte = [0u8; 1];
+        let mut stdout_inner = BufReader::new(stdout);
+        
+        loop {
+            match stdout_inner.read(&mut byte).await {
+                Ok(0) => break, // EOF
+                Ok(_) => {
+                    if byte[0] == b'\n' || byte[0] == b'\r' {
+                        if !buffer.is_empty() {
+                            if let Ok(line) = String::from_utf8(buffer.clone()) {
+                                let line = line.trim();
+                                if !line.is_empty() {
+                                    // Log stdout output
+                                    log_ytdlp_stdout(line);
+                                    
+                                    let parsed = parse_progress_line(line);
+                                    
+                                    match parsed {
+                                        ParsedLine::Progress(event) => {
+                                            tracing::debug!("Progress: {}%", event.percentage);
+                                            let _ = tx_stdout.send(ProcessOutput::Progress(event)).await;
+                                        }
+                                        ParsedLine::Merging => {
+                                            tracing::info!("Merging state detected");
+                                            let _ = tx_stdout.send(ProcessOutput::Merging).await;
+                                        }
+                                        ParsedLine::Unknown => {
+                                            // Check if this line is the final filepath
+                                            if is_valid_filepath(line) {
+                                                tracing::info!("Detected file path: {}", line);
+                                                let _ = tx_stdout.send(ProcessOutput::FilePath(line.to_string())).await;
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                            buffer.clear();
+                        }
+                    } else {
+                        buffer.push(byte[0]);
                     }
                 }
+                Err(_) => break,
+            }
+        }
+    });
+                        }
+                    } else {
+                        buffer.push(byte[0]);
+                    }
+                }
+                Err(_) => break,
             }
         }
     });
     
     // Spawn task to read stderr
     // **Validates: Requirements 10.1**
+    // Note: Also parse progress from stderr as some yt-dlp versions output progress there
     let stderr_task = tokio::spawn(async move {
         while let Ok(Some(line)) = stderr_reader.next_line().await {
             // Log stderr output (always logged as it often contains important info)
             log_ytdlp_stderr(&line);
             
+            // First try to parse as progress (some yt-dlp versions output progress to stderr)
+            let parsed = parse_progress_line(&line);
+            match parsed {
+                ParsedLine::Progress(event) => {
+                    tracing::info!("Progress event (from stderr): {}% speed={}", event.percentage, event.speed);
+                    let _ = tx_stderr.send(ProcessOutput::Progress(event)).await;
+                    continue;
+                }
+                ParsedLine::Merging => {
+                    tracing::info!("Merging state detected (from stderr)");
+                    let _ = tx_stderr.send(ProcessOutput::Merging).await;
+                    continue;
+                }
+                ParsedLine::Unknown => {
+                    // Not progress, try to parse as error
+                }
+            }
+            
+            // Try to parse as error
             if let Some(parsed_error) = parse_error_line(&line) {
                 let download_error: DownloadError = parsed_error.into();
                 let _ = tx_stderr.send(ProcessOutput::Error(download_error)).await;

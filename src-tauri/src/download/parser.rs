@@ -3,7 +3,9 @@
 //! This module handles parsing of yt-dlp stdout progress output and stderr error messages.
 //! 
 //! Progress format expected from --progress-template:
-//! `download:45.2%|23.5MiB|52.1MiB|2.5MiB/s|00:12`
+//! `download:45.2%|12345678|52345678|2.5MiB/s|00:12`
+//! 
+//! Where downloaded and total bytes are raw numbers (not formatted strings).
 //!
 //! **Validates: Requirements 4.2, 4.5, 6.3**
 
@@ -22,10 +24,11 @@ pub enum ParsedLine {
 
 /// Parse a single line of yt-dlp stdout output
 ///
-/// Expected format from --progress-template:
-/// `download:<percentage>|<downloaded>|<total>|<speed>|<eta>`
+/// Handles two formats:
+/// 1. Default yt-dlp format: `[download]  45.2% of  52.3MiB at  2.5MiB/s ETA 00:12`
+/// 2. Pipe-delimited format: `45.2%|12345678|52345678|2.5MiB/s|00:12`
 ///
-/// Example: `download:45.2%|23.5MiB|52.1MiB|2.5MiB/s|00:12`
+/// Note: For fragment-based downloads, percentage may be "NA"
 pub fn parse_progress_line(line: &str) -> ParsedLine {
     let line = line.trim();
     
@@ -34,33 +37,92 @@ pub fn parse_progress_line(line: &str) -> ParsedLine {
         return ParsedLine::Merging;
     }
     
-    // Check for download progress prefix
-    if !line.starts_with("download:") {
+    // Try to parse default yt-dlp download format first
+    // Format: [download]  45.2% of  52.3MiB at  2.5MiB/s ETA 00:12
+    if line.starts_with("[download]") && line.contains('%') {
+        return parse_default_download_line(line);
+    }
+    
+    // Try pipe-delimited format (legacy/custom template)
+    if line.contains('|') && !line.starts_with('[') {
+        return parse_pipe_delimited_line(line);
+    }
+    
+    // Also check for "download:" prefix (custom template output)
+    if line.starts_with("download:") {
+        let data = &line[9..]; // Skip "download:"
+        if data.contains('|') {
+            return parse_pipe_delimited_line(data);
+        }
+    }
+    
+    ParsedLine::Unknown
+}
+
+/// Parse default yt-dlp download format
+/// Format: [download]  45.2% of  52.3MiB at  2.5MiB/s ETA 00:12
+fn parse_default_download_line(line: &str) -> ParsedLine {
+    // Remove [download] prefix
+    let content = line.trim_start_matches("[download]").trim();
+    
+    // Skip non-progress lines like "[download] Destination: ..."
+    if content.starts_with("Destination:") || content.starts_with("Resuming") || 
+       content.contains("has already been downloaded") {
         return ParsedLine::Unknown;
     }
     
-    // Remove prefix and split by delimiter
-    let data = &line[9..]; // Skip "download:"
-    let parts: Vec<&str> = data.split('|').collect();
-    
-    if parts.len() < 5 {
+    // Try to extract percentage
+    let percentage = if let Some(pct_end) = content.find('%') {
+        let pct_str = &content[..pct_end].trim();
+        parse_percentage(pct_str)
+    } else {
         return ParsedLine::Unknown;
-    }
+    };
     
-    // Parse percentage (e.g., "45.2%" -> 45.2)
-    let percentage = parse_percentage(parts[0]);
+    // Extract speed (look for "at" followed by speed)
+    let speed = if let Some(at_pos) = content.find(" at ") {
+        let after_at = &content[at_pos + 4..];
+        // Speed ends at space before ETA or end of string
+        if let Some(eta_pos) = after_at.find(" ETA") {
+            after_at[..eta_pos].trim().to_string()
+        } else if let Some(space_pos) = after_at.find(' ') {
+            after_at[..space_pos].trim().to_string()
+        } else {
+            after_at.trim().to_string()
+        }
+    } else {
+        "--".to_string()
+    };
     
-    // Parse downloaded bytes (e.g., "23.5MiB" -> bytes)
-    let downloaded_bytes = parse_bytes(parts[1]);
+    // Extract ETA (look for "ETA" followed by time)
+    let eta_seconds = if let Some(eta_pos) = content.find("ETA ") {
+        let after_eta = &content[eta_pos + 4..];
+        let eta_str = after_eta.split_whitespace().next().unwrap_or("");
+        parse_eta(eta_str)
+    } else {
+        None
+    };
     
-    // Parse total bytes (e.g., "52.1MiB" -> bytes, or "N/A" -> None)
-    let total_bytes = parse_bytes_optional(parts[2]);
-    
-    // Speed string (keep as-is, e.g., "2.5MiB/s")
-    let speed = parts[3].trim().to_string();
-    
-    // Parse ETA (e.g., "00:12" -> 12 seconds, or "N/A" -> None)
-    let eta_seconds = parse_eta(parts[4]);
+    // Extract total size (look for "of" followed by size)
+    let (downloaded_bytes, total_bytes) = if let Some(of_pos) = content.find(" of ") {
+        let after_of = &content[of_pos + 4..];
+        // Size ends at " at " or space
+        let size_str = if let Some(at_pos) = after_of.find(" at ") {
+            &after_of[..at_pos]
+        } else {
+            after_of.split_whitespace().next().unwrap_or("")
+        };
+        let total = parse_bytes_raw_or_formatted_optional(size_str);
+        // Calculate downloaded from percentage
+        let downloaded = if let Some(t) = total {
+            ((percentage / 100.0) * t as f64) as u64
+        } else {
+            0
+        };
+        (downloaded, total)
+    } else {
+        (0, None)
+    };
     
     ParsedLine::Progress(ProgressEvent {
         percentage,
@@ -72,31 +134,101 @@ pub fn parse_progress_line(line: &str) -> ParsedLine {
     })
 }
 
+/// Parse pipe-delimited progress format
+/// Format: 45.2%|12345678|52345678|2.5MiB/s|00:12
+fn parse_pipe_delimited_line(data: &str) -> ParsedLine {
+    let parts: Vec<&str> = data.split('|').collect();
+    
+    if parts.len() < 5 {
+        return ParsedLine::Unknown;
+    }
+    
+    // Parse percentage (e.g., "45.2" or "NA" -> 0.0)
+    let percentage = parse_percentage(parts[0]);
+    
+    // Parse downloaded bytes - now raw number or formatted string
+    let downloaded_bytes = parse_bytes_raw_or_formatted(parts[1]);
+    
+    // Parse total bytes - now raw number or formatted string, or "NA"/"None" -> None
+    let total_bytes = parse_bytes_raw_or_formatted_optional(parts[2]);
+    
+    // Speed string (keep as-is, e.g., "2.5MiB/s")
+    let speed = clean_speed_string(parts[3]);
+    
+    // Parse ETA (e.g., "00:12" -> 12 seconds, or "N/A"/"Unknown" -> None)
+    let eta_seconds = parse_eta(parts[4]);
+    
+    // Calculate percentage from bytes if percentage is NA but we have both byte values
+    let final_percentage = if percentage == 0.0 && downloaded_bytes > 0 {
+        if let Some(total) = total_bytes {
+            if total > 0 {
+                ((downloaded_bytes as f64 / total as f64) * 100.0).min(100.0)
+            } else {
+                percentage
+            }
+        } else {
+            percentage
+        }
+    } else {
+        percentage
+    };
+    
+    ParsedLine::Progress(ProgressEvent {
+        percentage: final_percentage,
+        downloaded_bytes,
+        total_bytes,
+        speed,
+        eta_seconds,
+        status: "downloading".to_string(),
+    })
+}
 
-/// Parse percentage string like "45.2%" to f64
+
+/// Parse percentage string like "45.2%", "45.2", " 45.2%", or "NA" to f64
 fn parse_percentage(s: &str) -> f64 {
     let s = s.trim();
+    
+    // Handle NA/Unknown values
+    if s.eq_ignore_ascii_case("na") || s.eq_ignore_ascii_case("n/a") || s.eq_ignore_ascii_case("unknown") {
+        return 0.0;
+    }
+    
     // Remove % suffix if present
     let s = s.trim_end_matches('%');
-    s.parse::<f64>().unwrap_or(0.0).clamp(0.0, 100.0)
+    s.trim().parse::<f64>().unwrap_or(0.0).clamp(0.0, 100.0)
 }
 
-/// Parse byte string like "23.5MiB" to u64 bytes
-fn parse_bytes(s: &str) -> u64 {
-    parse_bytes_optional(s).unwrap_or(0)
+/// Parse raw byte number or formatted string like "23.5MiB" to u64 bytes
+fn parse_bytes_raw_or_formatted(s: &str) -> u64 {
+    parse_bytes_raw_or_formatted_optional(s).unwrap_or(0)
 }
 
-/// Parse byte string like "23.5MiB" to Option<u64> bytes
-/// Returns None for "N/A", "Unknown", or unparseable values
-fn parse_bytes_optional(s: &str) -> Option<u64> {
+/// Parse raw byte number or formatted string to Option<u64> bytes
+/// Returns None for "N/A", "NA", "Unknown", "None", or unparseable values
+fn parse_bytes_raw_or_formatted_optional(s: &str) -> Option<u64> {
     let s = s.trim();
     
-    // Handle N/A or Unknown
-    if s.eq_ignore_ascii_case("n/a") || s.eq_ignore_ascii_case("unknown") || s.is_empty() {
+    // Handle N/A, NA, Unknown, None
+    if s.eq_ignore_ascii_case("n/a") 
+        || s.eq_ignore_ascii_case("na")
+        || s.eq_ignore_ascii_case("unknown") 
+        || s.eq_ignore_ascii_case("none")
+        || s.is_empty() 
+    {
         return None;
     }
     
-    // Try to extract number and unit
+    // First try to parse as raw number (most common case now)
+    if let Ok(bytes) = s.parse::<u64>() {
+        return Some(bytes);
+    }
+    
+    // Also try parsing as float (yt-dlp sometimes outputs decimals)
+    if let Ok(bytes) = s.parse::<f64>() {
+        return Some(bytes as u64);
+    }
+    
+    // Fall back to formatted string parsing (e.g., "23.5MiB")
     let (num_str, unit) = extract_number_and_unit(s);
     
     let num: f64 = num_str.parse().ok()?;
@@ -111,6 +243,22 @@ fn parse_bytes_optional(s: &str) -> Option<u64> {
     };
     
     Some((num * multiplier as f64) as u64)
+}
+
+/// Clean speed string - remove extra whitespace and handle "Unknown" values
+fn clean_speed_string(s: &str) -> String {
+    let s = s.trim();
+    if s.eq_ignore_ascii_case("unknown") || s.eq_ignore_ascii_case("n/a") || s.eq_ignore_ascii_case("na") {
+        return "--".to_string();
+    }
+    s.to_string()
+}
+
+/// Parse raw byte number or formatted string to Option<u64> bytes (legacy support)
+/// Returns None for "N/A", "NA", "Unknown", "None", or unparseable values
+#[allow(dead_code)]
+fn parse_bytes_optional(s: &str) -> Option<u64> {
+    parse_bytes_raw_or_formatted_optional(s)
 }
 
 /// Extract number and unit from a string like "23.5MiB"
@@ -514,7 +662,7 @@ mod tests {
 
     #[test]
     fn test_parse_basic_progress_line() {
-        let line = "download:45.2%|23.5MiB|52.1MiB|2.5MiB/s|00:12";
+        let line = "download:45.2|23.5MiB|52.1MiB|2.5MiB/s|00:12";
         let result = parse_progress_line(line);
         
         if let ParsedLine::Progress(event) = result {
@@ -522,6 +670,122 @@ mod tests {
             assert_eq!(event.speed, "2.5MiB/s");
             assert_eq!(event.eta_seconds, Some(12));
             assert_eq!(event.status, "downloading");
+        } else {
+            panic!("Expected Progress, got {:?}", result);
+        }
+    }
+
+    #[test]
+    fn test_parse_progress_without_prefix() {
+        // yt-dlp outputs progress without "download:" prefix
+        let line = "45.2|24641536|54525952|2.5MiB/s|00:12";
+        let result = parse_progress_line(line);
+        
+        if let ParsedLine::Progress(event) = result {
+            assert!((event.percentage - 45.2).abs() < 0.01);
+            assert_eq!(event.downloaded_bytes, 24641536);
+            assert_eq!(event.total_bytes, Some(54525952));
+            assert_eq!(event.speed, "2.5MiB/s");
+            assert_eq!(event.eta_seconds, Some(12));
+        } else {
+            panic!("Expected Progress, got {:?}", result);
+        }
+    }
+
+    #[test]
+    fn test_parse_progress_with_na_percentage() {
+        // Fragment-based downloads have NA percentage
+        let line = "NA|111672|392544|125.62KiB/s|Unknown";
+        let result = parse_progress_line(line);
+        
+        if let ParsedLine::Progress(event) = result {
+            // Should calculate percentage from bytes: 111672/392544 ≈ 28.4%
+            assert!(event.percentage > 28.0 && event.percentage < 29.0);
+            assert_eq!(event.downloaded_bytes, 111672);
+            assert_eq!(event.total_bytes, Some(392544));
+            assert_eq!(event.speed, "125.62KiB/s");
+            assert!(event.eta_seconds.is_none());
+        } else {
+            panic!("Expected Progress, got {:?}", result);
+        }
+    }
+
+    #[test]
+    fn test_parse_progress_with_na_total() {
+        // When total is unknown
+        let line = "NA|111672|NA|125.62KiB/s|Unknown";
+        let result = parse_progress_line(line);
+        
+        if let ParsedLine::Progress(event) = result {
+            assert_eq!(event.percentage, 0.0); // Can't calculate without total
+            assert_eq!(event.downloaded_bytes, 111672);
+            assert!(event.total_bytes.is_none());
+        } else {
+            panic!("Expected Progress, got {:?}", result);
+        }
+    }
+
+    #[test]
+    fn test_parse_real_ytdlp_output() {
+        // Real output from yt-dlp with leading spaces in speed
+        let line = "NA|1024|NA|   1.48KiB/s|Unknown";
+        let result = parse_progress_line(line);
+        
+        if let ParsedLine::Progress(event) = result {
+            assert_eq!(event.downloaded_bytes, 1024);
+            assert!(event.total_bytes.is_none());
+            assert_eq!(event.speed, "1.48KiB/s"); // Should be trimmed
+            assert!(event.eta_seconds.is_none());
+        } else {
+            panic!("Expected Progress, got {:?}", result);
+        }
+    }
+
+    #[test]
+    fn test_parse_final_progress_line() {
+        // Final line when download completes - has total bytes
+        let line = "NA|392544|392544|971.05KiB/s|NA";
+        let result = parse_progress_line(line);
+        
+        if let ParsedLine::Progress(event) = result {
+            assert_eq!(event.downloaded_bytes, 392544);
+            assert_eq!(event.total_bytes, Some(392544));
+            // Should calculate 100% since downloaded == total
+            assert!((event.percentage - 100.0).abs() < 0.01);
+        } else {
+            panic!("Expected Progress, got {:?}", result);
+        }
+    }
+
+    #[test]
+    fn test_parse_progress_with_raw_bytes() {
+        // New format with raw byte numbers
+        let line = "download:45.2%|24641536|54525952|2.5MiB/s|00:12";
+        let result = parse_progress_line(line);
+        
+        if let ParsedLine::Progress(event) = result {
+            assert!((event.percentage - 45.2).abs() < 0.01);
+            assert_eq!(event.downloaded_bytes, 24641536);
+            assert_eq!(event.total_bytes, Some(54525952));
+            assert_eq!(event.speed, "2.5MiB/s");
+            assert_eq!(event.eta_seconds, Some(12));
+            assert_eq!(event.status, "downloading");
+        } else {
+            panic!("Expected Progress, got {:?}", result);
+        }
+    }
+
+    #[test]
+    fn test_parse_progress_with_none_total() {
+        // yt-dlp outputs "None" when total is unknown
+        let line = "download:10.0%|5242880|None|1.0MiB/s|N/A";
+        let result = parse_progress_line(line);
+        
+        if let ParsedLine::Progress(event) = result {
+            assert!((event.percentage - 10.0).abs() < 0.01);
+            assert_eq!(event.downloaded_bytes, 5242880);
+            assert!(event.total_bytes.is_none());
+            assert!(event.eta_seconds.is_none());
         } else {
             panic!("Expected Progress, got {:?}", result);
         }

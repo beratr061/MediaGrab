@@ -128,7 +128,7 @@ const Footer = memo(function Footer({ t }: { t: (key: string) => string }) {
 function App() {
   const { t } = useTranslation();
   const { success, info } = useToast();
-  
+
   // Form state
   const [url, setUrl] = useState("");
   const [format, setFormat] = useState<Format>("video-mp4");
@@ -137,7 +137,7 @@ function App() {
 
   // Global drag & drop state
   const [isGlobalDragOver, setIsGlobalDragOver] = useState(false);
-  
+
   // Batch import & schedule modals
   const [isBatchImportOpen, setIsBatchImportOpen] = useState(false);
   const [isScheduleOpen, setIsScheduleOpen] = useState(false);
@@ -145,11 +145,11 @@ function App() {
 
   // Preferences
   const { preferences, setPreferences, setOutputFolder: saveOutputFolder, setFormat: saveFormat, setQuality: saveQuality } = usePreferences();
-  
+
   // Queue & History
   const { addToQueue, activeCount, pendingCount } = useQueue();
   const { addToHistory } = useHistory();
-  
+
   // Note: Notification support can be added with @tauri-apps/plugin-notification
   // useEffect(() => {
   //   (async () => {
@@ -159,10 +159,10 @@ function App() {
   //     }
   //   })();
   // }, []);
-  
+
   // Media info & playlist
   const { mediaInfo, isLoadingMediaInfo, isPlaylist, playlistInfo, isLoadingPlaylist, fetchMediaInfo, handleUrlChange: onUrlChange, handlePaste: onPaste, clearMediaInfo } = useMediaInfo();
-  
+
   // Network status (must be before useDownload to pass isOffline)
   const networkStatus = useNetworkStatus();
 
@@ -228,13 +228,13 @@ function App() {
     addToHistory,
     isOffline: !networkStatus.isOnline || !networkStatus.isConnected,
   });
-  
+
   // Panels
   const { isSettingsOpen, isQueueOpen, isHistoryOpen, isPlaylistOpen, openSettings, closeSettings, openQueue, closeQueue, openHistory, closeHistory, openPlaylist, closePlaylist } = usePanels();
-  
+
   // Update notification
   const { updateAvailable, dismissUpdate } = useUpdateNotification();
-  
+
   // Executables
   const { missingExecutables, dismissMissingExecutables, copyDebugInfo } = useExecutables();
 
@@ -254,7 +254,7 @@ function App() {
   // Handlers
   const handleUrlChange = useCallback((newUrl: string) => onUrlChange(newUrl, setUrl), [onUrlChange]);
   const handlePaste = useCallback(() => onPaste(setUrl), [onPaste]);
-  
+
   const handleFormatChange = useCallback((newFormat: Format) => {
     setFormat(newFormat);
     saveFormat(newFormat);
@@ -438,7 +438,7 @@ function App() {
   }, [scheduledDownloads, preferences, setPreferences]);
 
   const handleToggleScheduled = useCallback((id: string) => {
-    const updated = scheduledDownloads.map(d => 
+    const updated = scheduledDownloads.map(d =>
       d.id === id ? { ...d, enabled: !d.enabled } : d
     );
     setScheduledDownloads(updated);
@@ -469,8 +469,8 @@ function App() {
       onDrop={handleGlobalDrop}
     >
       {/* Skip link for keyboard navigation */}
-      <a 
-        href="#main-content" 
+      <a
+        href="#main-content"
         className="skip-link"
         onClick={(e) => {
           e.preventDefault();
@@ -530,7 +530,7 @@ function App() {
             </div>
             <UrlInput id="url-input" value={url} onChange={handleUrlChange} onSubmit={handleDownload} onMultipleUrls={handleMultipleUrls} disabled={isDownloading} />
           </motion.div>
-          
+
           {/* Network Status Banner */}
           {(!networkStatus.isOnline || !networkStatus.isConnected || networkStatus.isDegraded) && (
             <motion.div variants={itemVariants}>
@@ -604,7 +604,7 @@ function App() {
 
           {/* Progress bar */}
           <AnimatePresence>
-            {(downloadState === "downloading" || downloadState === "merging") && (
+            {isDownloading && (
               <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: "auto" }} exit={{ opacity: 0, height: 0 }} transition={{ duration: 0.25 }}>
                 <ProgressBar progress={progress} />
               </motion.div>
@@ -613,12 +613,12 @@ function App() {
 
           {/* Status display */}
           <motion.div variants={itemVariants}>
-            <StatusDisplay 
-              state={downloadState} 
-              error={error} 
-              cookiesEnabled={!!preferences?.cookiesFromBrowser} 
-              onOpenSettings={openSettings} 
-              onRetry={handleDownload} 
+            <StatusDisplay
+              state={downloadState}
+              error={error}
+              cookiesEnabled={!!preferences?.cookiesFromBrowser}
+              onOpenSettings={openSettings}
+              onRetry={handleDownload}
               retryInfo={retryInfo}
               isOffline={!networkStatus.isOnline || !networkStatus.isConnected}
             />

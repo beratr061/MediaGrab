@@ -109,7 +109,9 @@
     "cancelled": "Download cancelled",
     "cancelling": "Cancelling...",
     "failed": "Download failed",
-    "retrying": "Retrying... ({{attempt}}/{{maxRetries}})"
+    "retrying": "Retrying... ({{attempt}}/{{maxRetries}})",
+    "preparing": "Preparing...",
+    "mergingFiles": "Merging..."
   },
   "errors": {
     "privateVideo": "This video is private or requires sign-in.",

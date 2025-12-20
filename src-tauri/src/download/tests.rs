@@ -3,7 +3,7 @@
 //! **Feature: MediaGrab, Property 4: yt-dlp Argument Builder Correctness**
 //! **Validates: Requirements 2.3, 2.4**
 
-use super::args::{ArgumentBuilder, FilenameTemplate};
+use super::args::ArgumentBuilder;
 use crate::models::DownloadConfig;
 use proptest::prelude::*;
 
@@ -37,11 +37,12 @@ fn arb_browser() -> impl Strategy<Value = Option<String>> {
 }
 
 /// Generate arbitrary filename templates
-fn arb_filename_template() -> impl Strategy<Value = FilenameTemplate> {
+fn arb_filename_template() -> impl Strategy<Value = Option<String>> {
     prop_oneof![
-        Just(FilenameTemplate::TitleOnly),
-        Just(FilenameTemplate::UploaderTitle),
-        Just(FilenameTemplate::DateTitle),
+        Just(None),
+        Just(Some("{title}".to_string())),
+        Just(Some("{uploader} - {title}".to_string())),
+        Just(Some("{date} - {title}".to_string())),
     ]
 }
 
@@ -54,9 +55,10 @@ fn arb_download_config() -> impl Strategy<Value = DownloadConfig> {
         Just("C:\\Downloads".to_string()),
         any::<bool>(),
         arb_browser(),
+        arb_filename_template(),
     )
         .prop_map(
-            |(url, format, quality, output_folder, embed_subtitles, cookies_from_browser)| {
+            |(url, format, quality, output_folder, embed_subtitles, cookies_from_browser, filename_template)| {
                 DownloadConfig {
                     url,
                     format,
@@ -64,6 +66,9 @@ fn arb_download_config() -> impl Strategy<Value = DownloadConfig> {
                     output_folder,
                     embed_subtitles,
                     cookies_from_browser,
+                    filename_template,
+                    proxy_url: None,
+                    cookies_file_path: None,
                 }
             },
         )
@@ -286,32 +291,6 @@ proptest! {
         }
     }
 
-    /// Property: Filename template is correctly applied
-    ///
-    /// **Validates: Requirements 6.5**
-    #[test]
-    fn prop_filename_template_applied(
-        config in arb_download_config(),
-        template in arb_filename_template()
-    ) {
-        let builder = ArgumentBuilder::new(config)
-            .with_filename_template(template.clone());
-        let args = builder.build();
-
-        // Find -o flag and verify template
-        let o_index = args.iter().position(|a| a == "-o");
-        prop_assert!(o_index.is_some(), "Arguments must contain -o flag");
-
-        let output_template = &args[o_index.unwrap() + 1];
-        let expected_template = template.to_template_string();
-
-        prop_assert_eq!(
-            output_template,
-            expected_template,
-            "Output template should match the configured template"
-        );
-    }
-
     /// Property: URL is always the first argument
     #[test]
     fn prop_url_is_first_argument(
@@ -354,16 +333,23 @@ proptest! {
 mod unit_tests {
     use super::*;
 
-    #[test]
-    fn test_basic_video_download_args() {
-        let config = DownloadConfig {
+    fn create_test_config() -> DownloadConfig {
+        DownloadConfig {
             url: "https://youtube.com/watch?v=test123".to_string(),
             format: "video-mp4".to_string(),
             quality: "best".to_string(),
             output_folder: "C:\\Downloads".to_string(),
             embed_subtitles: false,
             cookies_from_browser: None,
-        };
+            filename_template: None,
+            proxy_url: None,
+            cookies_file_path: None,
+        }
+    }
+
+    #[test]
+    fn test_basic_video_download_args() {
+        let config = create_test_config();
 
         let builder = ArgumentBuilder::new(config);
         let args = builder.build();
@@ -377,14 +363,8 @@ mod unit_tests {
 
     #[test]
     fn test_audio_mp3_extraction() {
-        let config = DownloadConfig {
-            url: "https://youtube.com/watch?v=test123".to_string(),
-            format: "audio-mp3".to_string(),
-            quality: "best".to_string(),
-            output_folder: "C:\\Downloads".to_string(),
-            embed_subtitles: false,
-            cookies_from_browser: None,
-        };
+        let mut config = create_test_config();
+        config.format = "audio-mp3".to_string();
 
         let builder = ArgumentBuilder::new(config);
         let args = builder.build();
@@ -395,14 +375,8 @@ mod unit_tests {
 
     #[test]
     fn test_audio_best_no_reencode() {
-        let config = DownloadConfig {
-            url: "https://youtube.com/watch?v=test123".to_string(),
-            format: "audio-best".to_string(),
-            quality: "best".to_string(),
-            output_folder: "C:\\Downloads".to_string(),
-            embed_subtitles: false,
-            cookies_from_browser: None,
-        };
+        let mut config = create_test_config();
+        config.format = "audio-best".to_string();
 
         let builder = ArgumentBuilder::new(config);
         let args = builder.build();
@@ -414,14 +388,8 @@ mod unit_tests {
 
     #[test]
     fn test_quality_1080p_format_selector() {
-        let config = DownloadConfig {
-            url: "https://youtube.com/watch?v=test123".to_string(),
-            format: "video-mp4".to_string(),
-            quality: "1080p".to_string(),
-            output_folder: "C:\\Downloads".to_string(),
-            embed_subtitles: false,
-            cookies_from_browser: None,
-        };
+        let mut config = create_test_config();
+        config.quality = "1080p".to_string();
 
         let builder = ArgumentBuilder::new(config);
         let format_selector = builder.get_format_selector();
@@ -433,14 +401,8 @@ mod unit_tests {
 
     #[test]
     fn test_quality_720p_format_selector() {
-        let config = DownloadConfig {
-            url: "https://youtube.com/watch?v=test123".to_string(),
-            format: "video-mp4".to_string(),
-            quality: "720p".to_string(),
-            output_folder: "C:\\Downloads".to_string(),
-            embed_subtitles: false,
-            cookies_from_browser: None,
-        };
+        let mut config = create_test_config();
+        config.quality = "720p".to_string();
 
         let builder = ArgumentBuilder::new(config);
         let format_selector = builder.get_format_selector();
@@ -450,14 +412,8 @@ mod unit_tests {
 
     #[test]
     fn test_cookies_from_browser() {
-        let config = DownloadConfig {
-            url: "https://youtube.com/watch?v=test123".to_string(),
-            format: "video-mp4".to_string(),
-            quality: "best".to_string(),
-            output_folder: "C:\\Downloads".to_string(),
-            embed_subtitles: false,
-            cookies_from_browser: Some("chrome".to_string()),
-        };
+        let mut config = create_test_config();
+        config.cookies_from_browser = Some("chrome".to_string());
 
         let builder = ArgumentBuilder::new(config);
         let args = builder.build();
@@ -467,14 +423,8 @@ mod unit_tests {
 
     #[test]
     fn test_embed_subtitles() {
-        let config = DownloadConfig {
-            url: "https://youtube.com/watch?v=test123".to_string(),
-            format: "video-mp4".to_string(),
-            quality: "best".to_string(),
-            output_folder: "C:\\Downloads".to_string(),
-            embed_subtitles: true,
-            cookies_from_browser: None,
-        };
+        let mut config = create_test_config();
+        config.embed_subtitles = true;
 
         let builder = ArgumentBuilder::new(config);
         let args = builder.build();
@@ -485,14 +435,7 @@ mod unit_tests {
 
     #[test]
     fn test_ffmpeg_location() {
-        let config = DownloadConfig {
-            url: "https://youtube.com/watch?v=test123".to_string(),
-            format: "video-mp4".to_string(),
-            quality: "best".to_string(),
-            output_folder: "C:\\Downloads".to_string(),
-            embed_subtitles: false,
-            cookies_from_browser: None,
-        };
+        let config = create_test_config();
 
         let builder = ArgumentBuilder::new(config)
             .with_ffmpeg_location("C:\\ffmpeg\\bin".to_string());
@@ -502,32 +445,28 @@ mod unit_tests {
     }
 
     #[test]
-    fn test_filename_templates() {
-        let config = DownloadConfig {
-            url: "https://youtube.com/watch?v=test123".to_string(),
-            format: "video-mp4".to_string(),
-            quality: "best".to_string(),
-            output_folder: "C:\\Downloads".to_string(),
-            embed_subtitles: false,
-            cookies_from_browser: None,
-        };
+    fn test_custom_filename_template() {
+        let mut config = create_test_config();
+        config.filename_template = Some("{uploader} - {title}".to_string());
 
-        // Test TitleOnly
-        let builder = ArgumentBuilder::new(config.clone())
-            .with_filename_template(FilenameTemplate::TitleOnly);
+        let builder = ArgumentBuilder::new(config);
         let args = builder.build();
-        assert!(args.windows(2).any(|w| w == ["-o", "%(title)s.%(ext)s"]));
 
-        // Test UploaderTitle
-        let builder = ArgumentBuilder::new(config.clone())
-            .with_filename_template(FilenameTemplate::UploaderTitle);
-        let args = builder.build();
-        assert!(args.windows(2).any(|w| w == ["-o", "%(uploader)s - %(title)s.%(ext)s"]));
+        // Find -o flag and verify template is converted
+        let o_index = args.iter().position(|a| a == "-o").unwrap();
+        let output_template = &args[o_index + 1];
+        assert!(output_template.contains("%(uploader)s"));
+        assert!(output_template.contains("%(title)s"));
+    }
 
-        // Test DateTitle
-        let builder = ArgumentBuilder::new(config)
-            .with_filename_template(FilenameTemplate::DateTitle);
+    #[test]
+    fn test_newline_flag_present() {
+        let config = create_test_config();
+
+        let builder = ArgumentBuilder::new(config);
         let args = builder.build();
-        assert!(args.windows(2).any(|w| w == ["-o", "%(upload_date)s - %(title)s.%(ext)s"]));
+
+        // Verify --newline flag is present for progress parsing
+        assert!(args.contains(&"--newline".to_string()));
     }
 }

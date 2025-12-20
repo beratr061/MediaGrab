@@ -37,9 +37,26 @@ fn arb_download_config() -> impl Strategy<Value = DownloadConfig> {
                     output_folder,
                     embed_subtitles,
                     cookies_from_browser,
+                    filename_template: None,
+                    proxy_url: None,
+                    cookies_file_path: None,
                 }
             },
         )
+}
+
+fn create_test_config() -> DownloadConfig {
+    DownloadConfig {
+        url: "https://youtube.com/watch?v=test".to_string(),
+        format: "video-mp4".to_string(),
+        quality: "best".to_string(),
+        output_folder: "C:\\Downloads".to_string(),
+        embed_subtitles: false,
+        cookies_from_browser: None,
+        filename_template: None,
+        proxy_url: None,
+        cookies_file_path: None,
+    }
 }
 
 proptest! {
@@ -197,14 +214,7 @@ mod unit_tests {
     #[tokio::test]
     async fn test_start_download_transitions_to_starting() {
         let manager = DownloadManager::new();
-        let config = DownloadConfig {
-            url: "https://youtube.com/watch?v=test".to_string(),
-            format: "video-mp4".to_string(),
-            quality: "best".to_string(),
-            output_folder: "C:\\Downloads".to_string(),
-            embed_subtitles: false,
-            cookies_from_browser: None,
-        };
+        let config = create_test_config();
 
         manager.start_download(config).await.unwrap();
         assert_eq!(manager.get_state().await, DownloadState::Starting);
@@ -214,22 +224,10 @@ mod unit_tests {
     #[tokio::test]
     async fn test_cannot_start_while_active() {
         let manager = DownloadManager::new();
-        let config1 = DownloadConfig {
-            url: "https://youtube.com/watch?v=test1".to_string(),
-            format: "video-mp4".to_string(),
-            quality: "best".to_string(),
-            output_folder: "C:\\Downloads".to_string(),
-            embed_subtitles: false,
-            cookies_from_browser: None,
-        };
-        let config2 = DownloadConfig {
-            url: "https://youtube.com/watch?v=test2".to_string(),
-            format: "audio-mp3".to_string(),
-            quality: "best".to_string(),
-            output_folder: "C:\\Downloads".to_string(),
-            embed_subtitles: false,
-            cookies_from_browser: None,
-        };
+        let config1 = create_test_config();
+        let mut config2 = create_test_config();
+        config2.url = "https://youtube.com/watch?v=test2".to_string();
+        config2.format = "audio-mp3".to_string();
 
         manager.start_download(config1).await.unwrap();
         let result = manager.start_download(config2).await;
@@ -240,14 +238,7 @@ mod unit_tests {
     #[tokio::test]
     async fn test_complete_download_flow() {
         let manager = DownloadManager::new();
-        let config = DownloadConfig {
-            url: "https://youtube.com/watch?v=test".to_string(),
-            format: "video-mp4".to_string(),
-            quality: "best".to_string(),
-            output_folder: "C:\\Downloads".to_string(),
-            embed_subtitles: false,
-            cookies_from_browser: None,
-        };
+        let config = create_test_config();
 
         // Start download
         manager.start_download(config).await.unwrap();
@@ -271,14 +262,7 @@ mod unit_tests {
     #[tokio::test]
     async fn test_cancel_download() {
         let manager = DownloadManager::new();
-        let config = DownloadConfig {
-            url: "https://youtube.com/watch?v=test".to_string(),
-            format: "video-mp4".to_string(),
-            quality: "best".to_string(),
-            output_folder: "C:\\Downloads".to_string(),
-            embed_subtitles: false,
-            cookies_from_browser: None,
-        };
+        let config = create_test_config();
 
         manager.start_download(config).await.unwrap();
         manager.start_downloading().await.unwrap();
@@ -290,14 +274,7 @@ mod unit_tests {
     #[tokio::test]
     async fn test_fail_download() {
         let manager = DownloadManager::new();
-        let config = DownloadConfig {
-            url: "https://youtube.com/watch?v=test".to_string(),
-            format: "video-mp4".to_string(),
-            quality: "best".to_string(),
-            output_folder: "C:\\Downloads".to_string(),
-            embed_subtitles: false,
-            cookies_from_browser: None,
-        };
+        let config = create_test_config();
 
         manager.start_download(config).await.unwrap();
         manager.start_downloading().await.unwrap();
@@ -311,14 +288,7 @@ mod unit_tests {
     #[tokio::test]
     async fn test_reset_after_completion() {
         let manager = DownloadManager::new();
-        let config = DownloadConfig {
-            url: "https://youtube.com/watch?v=test".to_string(),
-            format: "video-mp4".to_string(),
-            quality: "best".to_string(),
-            output_folder: "C:\\Downloads".to_string(),
-            embed_subtitles: false,
-            cookies_from_browser: None,
-        };
+        let config = create_test_config();
 
         manager.start_download(config).await.unwrap();
         manager.start_downloading().await.unwrap();
@@ -332,14 +302,7 @@ mod unit_tests {
     #[tokio::test]
     async fn test_cannot_reset_while_active() {
         let manager = DownloadManager::new();
-        let config = DownloadConfig {
-            url: "https://youtube.com/watch?v=test".to_string(),
-            format: "video-mp4".to_string(),
-            quality: "best".to_string(),
-            output_folder: "C:\\Downloads".to_string(),
-            embed_subtitles: false,
-            cookies_from_browser: None,
-        };
+        let config = create_test_config();
 
         manager.start_download(config).await.unwrap();
         manager.start_downloading().await.unwrap();

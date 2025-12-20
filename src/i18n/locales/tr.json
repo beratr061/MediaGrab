@@ -109,7 +109,9 @@
     "cancelled": "İndirme iptal edildi",
     "cancelling": "İptal ediliyor...",
     "failed": "İndirme başarısız",
-    "retrying": "Yeniden deneniyor... ({{attempt}}/{{maxRetries}})"
+    "retrying": "Yeniden deneniyor... ({{attempt}}/{{maxRetries}})",
+    "preparing": "Hazırlanıyor...",
+    "mergingFiles": "Birleştiriliyor..."
   },
   "errors": {
     "privateVideo": "Bu video özel veya giriş yapılması gerekiyor.",

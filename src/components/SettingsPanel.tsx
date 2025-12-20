@@ -212,11 +212,11 @@ export function SettingsPanel({ isOpen, onClose, preferences, onPreferencesChang
     <AnimatePresence>
       {isOpen && (
         <>
-          <motion.div 
-            className="fixed inset-0 bg-black/50 z-40" 
-            initial={{ opacity: 0 }} 
-            animate={{ opacity: 1 }} 
-            exit={{ opacity: 0 }} 
+          <motion.div
+            className="fixed inset-0 bg-black/50 z-40"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
             onClick={onClose}
             aria-hidden="true"
           />
@@ -236,10 +236,10 @@ export function SettingsPanel({ isOpen, onClose, preferences, onPreferencesChang
                 <h2 id="settings-title" className="text-lg font-semibold">{t("settings.title")}</h2>
               </div>
               <motion.div variants={buttonVariants} whileHover="hover" whileTap="tap" transition={springTransition}>
-                <Button 
+                <Button
                   ref={closeButtonRef}
-                  variant="ghost" 
-                  size="icon" 
+                  variant="ghost"
+                  size="icon"
                   onClick={onClose}
                   aria-label={t("buttons.close", "Close settings")}
                 >
@@ -393,7 +393,7 @@ export function SettingsPanel({ isOpen, onClose, preferences, onPreferencesChang
                       <Section title={t("settings.cookies")} icon={<Cookie className="h-4 w-4" />}>
                         <div className="space-y-4">
                           <p className="text-xs text-muted-foreground">{t("settings.cookiesDescription")}</p>
-                          
+
                           {/* Custom cookies.txt file */}
                           <div className="space-y-2">
                             <label className="text-sm font-medium">{t("settings.cookiesFile")}</label>
@@ -416,7 +416,7 @@ export function SettingsPanel({ isOpen, onClose, preferences, onPreferencesChang
                             </div>
                             <p className="text-xs text-muted-foreground">{t("settings.cookiesFileDescription")}</p>
                           </div>
-                          
+
                           {/* Browser cookies (fallback) */}
                           <div className="space-y-2">
                             <label className="text-sm font-medium">{t("settings.cookiesBrowser")}</label>
@@ -445,18 +445,10 @@ export function SettingsPanel({ isOpen, onClose, preferences, onPreferencesChang
                   )}
 
                   {activeTab === "about" && (
-                    <div className="space-y-6">
-                      <Section title="Debug">
-                        <CopyDebugInfoButton />
-                      </Section>
-                      <Section title={t("app.title")}>
-                        <div className="text-sm text-muted-foreground space-y-1">
-                          <p>{t("app.description")}</p>
-                          {appVersion && <p>Version: {appVersion}</p>}
-                          {ytdlpVersion && <p>yt-dlp: {ytdlpVersion}</p>}
-                        </div>
-                      </Section>
-                    </div>
+                    <AboutTab
+                      appVersion={appVersion}
+                      ytdlpVersion={ytdlpVersion}
+                    />
                   )}
                 </motion.div>
               </AnimatePresence>
@@ -486,13 +478,13 @@ function ToggleSwitch({ id, label, checked, onChange }: { id: string; label: str
   return (
     <div className="flex items-center justify-between">
       <label htmlFor={id} className="text-sm text-muted-foreground cursor-pointer flex-1 pr-4">{label}</label>
-      <button 
-        id={id} 
+      <button
+        id={id}
         type="button"
-        role="switch" 
+        role="switch"
         aria-checked={checked}
         aria-label={label}
-        onClick={onChange} 
+        onClick={onChange}
         onKeyDown={(e) => {
           if (e.key === 'Enter' || e.key === ' ') {
             e.preventDefault();
@@ -504,11 +496,11 @@ function ToggleSwitch({ id, label, checked, onChange }: { id: string; label: str
           checked ? 'bg-primary' : 'bg-muted'
         )}
       >
-        <span 
+        <span
           className={cn(
             "inline-block h-5 w-5 transform rounded-full bg-background shadow-sm transition-transform",
             checked ? 'translate-x-5' : 'translate-x-0.5'
-          )} 
+          )}
         />
       </button>
     </div>
@@ -518,14 +510,14 @@ function ToggleSwitch({ id, label, checked, onChange }: { id: string; label: str
 function ThemeModeButton({ mode, currentMode, onClick, icon, label }: { mode: Theme; currentMode: Theme; onClick: () => void; icon: React.ReactNode; label: string }) {
   const isSelected = mode === currentMode;
   return (
-    <button 
-      onClick={onClick} 
+    <button
+      onClick={onClick}
       className={cn(
         "flex flex-col items-center gap-1 p-3 rounded-lg border transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2",
-        isSelected 
-          ? 'border-primary bg-primary/10 text-primary' 
+        isSelected
+          ? 'border-primary bg-primary/10 text-primary'
           : 'border-border hover:border-muted-foreground/50 text-muted-foreground hover:text-foreground'
-      )} 
+      )}
       role="radio"
       aria-checked={isSelected}
       aria-label={label}
@@ -538,19 +530,80 @@ function ThemeModeButton({ mode, currentMode, onClick, icon, label }: { mode: Th
 
 function AccentColorButton({ hsl, isSelected, onClick, label }: { color: AccentColor; hsl: string; isSelected: boolean; onClick: () => void; label: string }) {
   return (
-    <button 
-      onClick={onClick} 
+    <button
+      onClick={onClick}
       className={cn(
         "w-8 h-8 rounded-full transition-all relative focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2",
         isSelected ? 'ring-2 ring-offset-2 ring-offset-background ring-foreground scale-110' : 'hover:scale-105'
-      )} 
-      style={{ backgroundColor: `hsl(${hsl})` }} 
+      )}
+      style={{ backgroundColor: `hsl(${hsl})` }}
       role="radio"
       aria-checked={isSelected}
-      aria-label={label} 
+      aria-label={label}
       title={label}
     >
       {isSelected && <CheckCircle className="h-4 w-4 text-white absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 drop-shadow-md" aria-hidden="true" />}
     </button>
+  );
+}
+
+function AboutTab({ appVersion, ytdlpVersion }: { appVersion: string | null; ytdlpVersion: string | null }) {
+  const { t } = useTranslation();
+  const [logs, setLogs] = useState<string>("");
+  const [isLoadingLogs, setIsLoadingLogs] = useState(false);
+
+  const fetchLogs = useCallback(async () => {
+    setIsLoadingLogs(true);
+    try {
+      const recentLogs = await invoke<string>("get_recent_logs", { count: 200 });
+      setLogs(recentLogs);
+    } catch (err) {
+      console.error("Failed to fetch logs:", err);
+      setLogs("Failed to fetch logs: " + String(err));
+    } finally {
+      setIsLoadingLogs(false);
+    }
+  }, []);
+
+  const copyLogs = useCallback(() => {
+    navigator.clipboard.writeText(logs);
+  }, [logs]);
+
+  return (
+    <div className="space-y-6">
+      <Section title="Debug">
+        <div className="space-y-3">
+          <CopyDebugInfoButton />
+          <div className="flex gap-2">
+            <Button variant="outline" size="sm" onClick={fetchLogs} disabled={isLoadingLogs}>
+              {isLoadingLogs ? <RefreshCw className="h-4 w-4 mr-2 animate-spin" /> : <RefreshCw className="h-4 w-4 mr-2" />}
+              View Logs
+            </Button>
+            {logs && (
+              <Button variant="outline" size="sm" onClick={copyLogs}>
+                Copy Logs
+              </Button>
+            )}
+          </div>
+          {logs && (
+            <div className="mt-2">
+              <textarea
+                readOnly
+                value={logs}
+                className="w-full h-64 p-2 text-xs font-mono bg-muted rounded-md border border-border resize-y"
+                placeholder="Click 'View Logs' to fetch recent logs..."
+              />
+            </div>
+          )}
+        </div>
+      </Section>
+      <Section title={t("app.title")}>
+        <div className="text-sm text-muted-foreground space-y-1">
+          <p>{t("app.description")}</p>
+          {appVersion && <p>Version: {appVersion}</p>}
+          {ytdlpVersion && <p>yt-dlp: {ytdlpVersion}</p>}
+        </div>
+      </Section>
+    </div>
   );
 }

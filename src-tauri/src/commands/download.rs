@@ -119,10 +119,16 @@ pub async fn start_download(
     tokio::spawn(async move {
         // Track the detected file path from --print after_move:filepath
         let mut detected_file_path: Option<String> = None;
+        let mut progress_count = 0u32;
+        
+        tracing::info!("Starting to receive process output events...");
         
         while let Some(output) = rx.recv().await {
             match output {
                 ProcessOutput::Progress(event) => {
+                    progress_count += 1;
+                    tracing::info!("Progress event #{}: {}% speed={}", progress_count, event.percentage, event.speed);
+                    
                     // Update manager progress
                     manager_for_events.update_progress(event.clone()).await;
                     

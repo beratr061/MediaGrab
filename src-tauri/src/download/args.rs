@@ -225,9 +225,16 @@ impl ArgumentBuilder {
             _ => {} // Audio formats don't need merge output format
         }
 
-        // Progress template for structured output parsing
-        args.push("--progress-template".to_string());
-        args.push("download:%(progress._percent_str)s|%(progress._downloaded_bytes_str)s|%(progress._total_bytes_str)s|%(progress._speed_str)s|%(progress._eta_str)s".to_string());
+        // Use default yt-dlp progress output format instead of custom template
+        // Default format: [download]  45.2% of  52.3MiB at  2.5MiB/s ETA 00:12
+        // This is more reliable across different yt-dlp versions
+        
+        // CRITICAL: Force progress output even when not connected to a TTY
+        // Without this, yt-dlp detects it's not in an interactive terminal and disables progress
+        args.push("--progress".to_string());
+        
+        // Force newline output for each progress update (required for line-by-line parsing)
+        args.push("--newline".to_string());
 
         // Print the final filename after download (for reliable file path detection)
         args.push("--print".to_string());
