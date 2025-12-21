@@ -16,13 +16,13 @@ export type DownloadState =
   | 'failed';
 
 // Format options - matches Rust format handling
-export type Format = 
+export type Format =
   // Video formats
-  | 'video-mp4' 
-  | 'video-webm' 
+  | 'video-mp4'
+  | 'video-webm'
   | 'video-mkv'
   // Audio formats  
-  | 'audio-mp3' 
+  | 'audio-mp3'
   | 'audio-best'
   | 'audio-flac'
   | 'audio-wav'
@@ -305,3 +305,181 @@ export interface SubtitleOptions {
   format: 'srt' | 'vtt' | 'ass';
   includeAuto: boolean;
 }
+
+
+// ============================================
+// Error System Types (matches Rust backend)
+// ============================================
+
+/**
+ * Download error types - matches Rust DownloadError enum
+ */
+export type DownloadErrorType =
+  | 'InvalidUrl'
+  | 'AlreadyDownloading'
+  | 'ProcessSpawnError'
+  | 'DownloadFailed'
+  | 'FolderNotAccessible'
+  | 'ExecutableNotFound'
+  | 'PrivateVideo'
+  | 'AgeRestricted'
+  | 'RegionLocked'
+  | 'NetworkError'
+  | 'NotFound'
+  | 'RateLimited'
+  | 'AuthenticationRequired'
+  | 'UnsupportedUrl'
+  | 'Timeout'
+  | 'GenericError';
+
+/**
+ * Error category for UI display
+ */
+export type ErrorCategory =
+  | 'validation'
+  | 'state'
+  | 'process'
+  | 'download'
+  | 'filesystem'
+  | 'dependency'
+  | 'access'
+  | 'network'
+  | 'not_found'
+  | 'rate_limit'
+  | 'auth'
+  | 'generic';
+
+/**
+ * Structured error from backend
+ */
+export interface AppError {
+  type: DownloadErrorType;
+  message: string;
+  category: ErrorCategory;
+  isRetryable: boolean;
+  suggestedAction?: string;
+}
+
+/**
+ * Maps error type to its category
+ */
+export function getErrorCategory(errorType: DownloadErrorType): ErrorCategory {
+  const categoryMap: Record<DownloadErrorType, ErrorCategory> = {
+    InvalidUrl: 'validation',
+    AlreadyDownloading: 'state',
+    ProcessSpawnError: 'process',
+    DownloadFailed: 'download',
+    FolderNotAccessible: 'filesystem',
+    ExecutableNotFound: 'dependency',
+    PrivateVideo: 'access',
+    AgeRestricted: 'access',
+    RegionLocked: 'access',
+    NetworkError: 'network',
+    NotFound: 'not_found',
+    RateLimited: 'rate_limit',
+    AuthenticationRequired: 'auth',
+    UnsupportedUrl: 'validation',
+    Timeout: 'network',
+    GenericError: 'generic',
+  };
+  return categoryMap[errorType] || 'generic';
+}
+
+/**
+ * Checks if an error type is retryable
+ */
+export function isRetryableError(errorType: DownloadErrorType): boolean {
+  return ['NetworkError', 'DownloadFailed', 'RateLimited', 'Timeout'].includes(errorType);
+}
+
+/**
+ * Parses error string to determine error type
+ * Used when backend returns string errors
+ */
+export function parseErrorType(errorMessage: string): DownloadErrorType {
+  const lowerMessage = errorMessage.toLowerCase();
+
+  if (lowerMessage.includes('private video') || lowerMessage.includes('video is private')) {
+    return 'PrivateVideo';
+  }
+  if (lowerMessage.includes('age restricted') || lowerMessage.includes('age-restricted')) {
+    return 'AgeRestricted';
+  }
+  if (lowerMessage.includes('not available') && lowerMessage.includes('region')) {
+    return 'RegionLocked';
+  }
+  if (lowerMessage.includes('video not found') || lowerMessage.includes('video unavailable')) {
+    return 'NotFound';
+  }
+  if (lowerMessage.includes('rate limit') || lowerMessage.includes('429') || lowerMessage.includes('too many requests')) {
+    return 'RateLimited';
+  }
+  if (lowerMessage.includes('authentication') || lowerMessage.includes('sign in') || lowerMessage.includes('login')) {
+    return 'AuthenticationRequired';
+  }
+  if (lowerMessage.includes('network') || lowerMessage.includes('connection')) {
+    return 'NetworkError';
+  }
+  if (lowerMessage.includes('timeout') || lowerMessage.includes('timed out')) {
+    return 'Timeout';
+  }
+  if (lowerMessage.includes('folder') || lowerMessage.includes('directory')) {
+    return 'FolderNotAccessible';
+  }
+  if (lowerMessage.includes('executable') || lowerMessage.includes('yt-dlp') || lowerMessage.includes('ffmpeg')) {
+    return 'ExecutableNotFound';
+  }
+  if (lowerMessage.includes('invalid url') || lowerMessage.includes('unsupported')) {
+    return 'InvalidUrl';
+  }
+  if (lowerMessage.includes('already downloading')) {
+    return 'AlreadyDownloading';
+  }
+
+  return 'GenericError';
+}
+
+/**
+ * Gets i18n key for error type
+ */
+export function getErrorI18nKey(errorType: DownloadErrorType): string {
+  const keyMap: Record<DownloadErrorType, string> = {
+    InvalidUrl: 'errors.invalidUrl',
+    AlreadyDownloading: 'errors.alreadyDownloading',
+    ProcessSpawnError: 'errors.processSpawnError',
+    DownloadFailed: 'errors.downloadFailed',
+    FolderNotAccessible: 'errors.folderNotAccessible',
+    ExecutableNotFound: 'errors.executableNotFound',
+    PrivateVideo: 'errors.privateVideo',
+    AgeRestricted: 'errors.ageRestricted',
+    RegionLocked: 'errors.regionLocked',
+    NetworkError: 'errors.networkError',
+    NotFound: 'errors.notFound',
+    RateLimited: 'errors.rateLimited',
+    AuthenticationRequired: 'errors.authenticationRequired',
+    UnsupportedUrl: 'errors.unsupportedUrl',
+    Timeout: 'errors.timeout',
+    GenericError: 'errors.genericError',
+  };
+  return keyMap[errorType] || 'errors.genericError';
+}
+
+/**
+ * Gets i18n key for error suggestion
+ */
+export function getSuggestionI18nKey(errorType: DownloadErrorType): string | null {
+  const keyMap: Partial<Record<DownloadErrorType, string>> = {
+    PrivateVideo: 'suggestions.privateVideo',
+    AgeRestricted: 'suggestions.ageRestricted',
+    AuthenticationRequired: 'suggestions.authenticationRequired',
+    RegionLocked: 'suggestions.regionLocked',
+    NetworkError: 'suggestions.networkError',
+    NotFound: 'suggestions.notFound',
+    RateLimited: 'suggestions.rateLimited',
+    Timeout: 'suggestions.timeout',
+    FolderNotAccessible: 'suggestions.folderNotAccessible',
+    ExecutableNotFound: 'suggestions.executableNotFound',
+  };
+  return keyMap[errorType] || null;
+}
+

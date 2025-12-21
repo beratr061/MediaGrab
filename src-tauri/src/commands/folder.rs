@@ -6,6 +6,7 @@ use std::fs;
 use std::path::Path;
 use tauri_plugin_dialog::DialogExt;
 
+use crate::models::FilesystemError;
 use crate::utils::create_hidden_command;
 
 /// Open native folder picker dialog and return selected path
@@ -40,18 +41,24 @@ pub async fn pick_cookies_file(app: tauri::AppHandle) -> Result<Option<String>, 
 }
 
 /// Check if a folder is accessible (exists and writable)
+/// Uses FilesystemError for structured error handling
 #[tauri::command]
 pub fn check_folder_accessible(path: String) -> Result<bool, String> {
-    let folder_path = Path::new(&path);
+    check_folder_accessible_impl(&path).map_err(|e| e.to_command_error())
+}
+
+/// Internal implementation using FilesystemError
+fn check_folder_accessible_impl(path: &str) -> Result<bool, FilesystemError> {
+    let folder_path = Path::new(path);
     
     // Check if path exists
     if !folder_path.exists() {
-        return Err(format!("Folder does not exist: {}", path));
+        return Err(FilesystemError::FolderNotFound(path.to_string()));
     }
     
     // Check if it's a directory
     if !folder_path.is_dir() {
-        return Err(format!("Path is not a directory: {}", path));
+        return Err(FilesystemError::NotADirectory(path.to_string()));
     }
     
     // Check write permissions by attempting to create a temp file
@@ -62,7 +69,7 @@ pub fn check_folder_accessible(path: String) -> Result<bool, String> {
             let _ = fs::remove_file(&test_file);
             Ok(true)
         }
-        Err(e) => Err(format!("Cannot write to folder: {}", e)),
+        Err(e) => Err(FilesystemError::NotWritable(e.to_string())),
     }
 }
 
@@ -177,21 +184,26 @@ pub struct FolderValidationResult {
 /// Requirements: 4.3 - Display buttons to open the output folder
 #[tauri::command]
 pub fn open_folder(path: String) -> Result<(), String> {
-    let folder_path = Path::new(&path);
+    open_folder_impl(&path).map_err(|e| e.to_command_error())
+}
+
+/// Internal implementation using FilesystemError
+fn open_folder_impl(path: &str) -> Result<(), FilesystemError> {
+    let folder_path = Path::new(path);
     
     if !folder_path.exists() {
-        return Err(format!("Folder does not exist: {}", path));
+        return Err(FilesystemError::FolderNotFound(path.to_string()));
     }
     
     if !folder_path.is_dir() {
-        return Err(format!("Path is not a directory: {}", path));
+        return Err(FilesystemError::NotADirectory(path.to_string()));
     }
     
     // Use Windows explorer to open the folder (hidden command window)
     create_hidden_command("explorer")
-        .arg(&path)
+        .arg(path)
         .spawn()
-        .map_err(|e| format!("Failed to open folder: {}", e))?;
+        .map_err(|e| FilesystemError::OpenError(e.to_string()))?;
     
     Ok(())
 }
@@ -200,22 +212,28 @@ pub fn open_folder(path: String) -> Result<(), String> {
 /// Requirements: 4.3 - Display buttons to play the file
 #[tauri::command]
 pub fn open_file(path: String) -> Result<(), String> {
-    let file_path = Path::new(&path);
+    open_file_impl(&path).map_err(|e| e.to_command_error())
+}
+
+/// Internal implementation using FilesystemError
+fn open_file_impl(path: &str) -> Result<(), FilesystemError> {
+    let file_path = Path::new(path);
     
     if !file_path.exists() {
-        return Err(format!("File does not exist: {}", path));
+        return Err(FilesystemError::FileNotFound(path.to_string()));
     }
     
     if !file_path.is_file() {
-        return Err(format!("Path is not a file: {}", path));
+        return Err(FilesystemError::NotAFile(path.to_string()));
     }
     
     // Use Windows 'start' command to open file with default application
     // We use cmd /c start "" "path" to handle paths with spaces (hidden command window)
     create_hidden_command("cmd")
-        .args(["/c", "start", "", &path])
+        .args(["/c", "start", "", path])
         .spawn()
-        .map_err(|e| format!("Failed to open file: {}", e))?;
+        .map_err(|e| FilesystemError::OpenError(e.to_string()))?;
     
     Ok(())
 }
+

@@ -160,34 +160,9 @@ fn get_cookies_from_preferences(app: &tauri::AppHandle) -> (Option<String>, Opti
 }
 
 /// Parses yt-dlp stderr to extract a user-friendly error message
+/// Uses the centralized error parser from models::error
 fn parse_ytdlp_error(stderr: &str) -> String {
-    let stderr_lower = stderr.to_lowercase();
-    
-    if stderr_lower.contains("private video") || stderr_lower.contains("video is private") {
-        return DownloadError::PrivateVideo.to_string();
-    }
-    
-    if stderr_lower.contains("age") && (stderr_lower.contains("restricted") || stderr_lower.contains("verify") || stderr_lower.contains("confirm")) {
-        return DownloadError::AgeRestricted.to_string();
-    }
-    
-    if stderr_lower.contains("not available") && stderr_lower.contains("country") {
-        return DownloadError::RegionLocked.to_string();
-    }
-    
-    if stderr_lower.contains("video unavailable") || stderr_lower.contains("does not exist") {
-        return DownloadError::NotFound.to_string();
-    }
-    
-    if stderr_lower.contains("unable to download") || stderr_lower.contains("connection") {
-        return DownloadError::NetworkError(stderr.lines().next().unwrap_or("Network error").to_string()).to_string();
-    }
-    
-    // Return the first line of stderr as a generic error
-    stderr.lines()
-        .find(|line| line.contains("ERROR"))
-        .unwrap_or(stderr.lines().next().unwrap_or("Unknown error"))
-        .to_string()
+    crate::models::error::parse_ytdlp_error(stderr).to_string()
 }
 
 #[cfg(test)]
@@ -249,7 +224,8 @@ mod tests {
     fn test_parse_ytdlp_error_private() {
         let stderr = "ERROR: [youtube] abc123: Private video. Sign in if you've been granted access";
         let error = parse_ytdlp_error(stderr);
-        assert!(error.contains("private"));
+        // Should contain "private" from DownloadError::PrivateVideo message
+        assert!(error.to_lowercase().contains("private"), "Expected 'private' in error: {}", error);
     }
 
     #[test]
@@ -264,6 +240,7 @@ mod tests {
     fn test_parse_ytdlp_error_not_found() {
         let stderr = "ERROR: Video unavailable";
         let error = parse_ytdlp_error(stderr);
-        assert!(error.contains("not found"));
+        // Should contain "not found" from DownloadError::NotFound message
+        assert!(error.to_lowercase().contains("not found"), "Expected 'not found' in error: {}", error);
     }
 }

@@ -9,6 +9,7 @@ use mediagrab_lib::download::parser::{parse_progress_line, ParsedLine};
 
 #[cfg(windows)]
 fn create_hidden_command(program: &str) -> Command {
+    #[allow(unused_imports)]
     use std::os::windows::process::CommandExt;
     const CREATE_NO_WINDOW: u32 = 0x08000000;
     

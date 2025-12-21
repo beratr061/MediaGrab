@@ -114,12 +114,22 @@
     "mergingFiles": "Merging..."
   },
   "errors": {
+    "invalidUrl": "Invalid URL. Please check the URL and try again.",
+    "alreadyDownloading": "A download is already in progress. Please wait or cancel it first.",
+    "processSpawnError": "Failed to start the download process. Please try again.",
+    "downloadFailed": "Download failed. Please try again.",
     "privateVideo": "This video is private or requires sign-in.",
     "ageRestricted": "This video is age-restricted.",
     "regionLocked": "This video is not available in your region.",
     "networkError": "Network error. Please check your connection.",
     "notFound": "Video not found. Please check the URL.",
+    "rateLimited": "Too many requests. Please wait a few minutes and try again.",
+    "authenticationRequired": "Authentication required. Please enable cookie import to access this content.",
+    "unsupportedUrl": "This URL is not supported. Please try a different URL.",
+    "timeout": "Connection timed out. Please check your network and try again.",
+    "executableNotFound": "Required executable not found. Please reinstall the application.",
     "folderNotAccessible": "Cannot write to selected folder. Please choose a different location.",
+    "genericError": "An error occurred. Please try again.",
     "folderValidationFailed": "Failed to validate output folder",
     "diskSpaceWarning": "Warning: {{warning}}. Download may fail.",
     "folderPickerFailed": "Failed to open folder picker"
@@ -127,9 +137,14 @@
   "suggestions": {
     "privateVideo": "Try enabling browser cookie import to access content you have legitimate access to.",
     "ageRestricted": "Enable browser cookie import in settings to verify your age.",
+    "authenticationRequired": "Enable browser cookie import in settings to access authenticated content.",
     "regionLocked": "This content is restricted based on your location.",
     "networkError": "Check your internet connection and try again.",
-    "notFound": "The video may have been removed or the URL may be incorrect."
+    "notFound": "The video may have been removed or the URL may be incorrect.",
+    "rateLimited": "Wait a few minutes before trying again. Too many requests were made.",
+    "timeout": "Check your network connection. The server may be slow or unresponsive.",
+    "folderNotAccessible": "Choose a different folder or check folder permissions.",
+    "executableNotFound": "Reinstall the application to restore required files."
   },
   "retry": {
     "title": "Automatic retry in progress",

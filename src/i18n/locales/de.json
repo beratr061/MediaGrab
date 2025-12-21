@@ -67,12 +67,22 @@
     "retrying": "Erneuter Versuch... ({{attempt}}/{{maxRetries}})"
   },
   "errors": {
+    "invalidUrl": "Ungültige URL. Bitte überprüfen Sie die URL und versuchen Sie es erneut.",
+    "alreadyDownloading": "Ein Download ist bereits aktiv. Bitte warten oder brechen Sie ihn zuerst ab.",
+    "processSpawnError": "Download-Prozess konnte nicht gestartet werden. Bitte erneut versuchen.",
+    "downloadFailed": "Download fehlgeschlagen. Bitte erneut versuchen.",
     "privateVideo": "Dieses Video ist privat oder erfordert eine Anmeldung.",
     "ageRestricted": "Dieses Video ist altersbeschränkt.",
     "regionLocked": "Dieses Video ist in Ihrer Region nicht verfügbar.",
     "networkError": "Netzwerkfehler. Bitte überprüfen Sie Ihre Verbindung.",
     "notFound": "Video nicht gefunden. Bitte überprüfen Sie die URL.",
+    "rateLimited": "Zu viele Anfragen. Bitte warten Sie einige Minuten und versuchen Sie es erneut.",
+    "authenticationRequired": "Authentifizierung erforderlich. Aktivieren Sie den Cookie-Import, um auf diesen Inhalt zuzugreifen.",
+    "unsupportedUrl": "Diese URL wird nicht unterstützt. Bitte versuchen Sie eine andere URL.",
+    "timeout": "Verbindung abgelaufen. Bitte überprüfen Sie Ihr Netzwerk und versuchen Sie es erneut.",
+    "executableNotFound": "Erforderliche ausführbare Datei nicht gefunden. Bitte installieren Sie die Anwendung neu.",
     "folderNotAccessible": "Kann nicht in den ausgewählten Ordner schreiben. Bitte wählen Sie einen anderen Speicherort.",
+    "genericError": "Ein Fehler ist aufgetreten. Bitte erneut versuchen.",
     "folderValidationFailed": "Ausgabeordner konnte nicht validiert werden",
     "diskSpaceWarning": "Warnung: {{warning}}. Download könnte fehlschlagen.",
     "folderPickerFailed": "Ordnerauswahl konnte nicht geöffnet werden"
@@ -80,9 +90,14 @@
   "suggestions": {
     "privateVideo": "Versuchen Sie, den Browser-Cookie-Import zu aktivieren, um auf Inhalte zuzugreifen, auf die Sie legitimen Zugriff haben.",
     "ageRestricted": "Aktivieren Sie den Browser-Cookie-Import in den Einstellungen, um Ihr Alter zu bestätigen.",
+    "authenticationRequired": "Aktivieren Sie den Browser-Cookie-Import in den Einstellungen, um auf authentifizierte Inhalte zuzugreifen.",
     "regionLocked": "Dieser Inhalt ist basierend auf Ihrem Standort eingeschränkt.",
     "networkError": "Überprüfen Sie Ihre Internetverbindung und versuchen Sie es erneut.",
-    "notFound": "Das Video wurde möglicherweise entfernt oder die URL ist falsch."
+    "notFound": "Das Video wurde möglicherweise entfernt oder die URL ist falsch.",
+    "rateLimited": "Warten Sie einige Minuten, bevor Sie es erneut versuchen. Zu viele Anfragen wurden gestellt.",
+    "timeout": "Überprüfen Sie Ihre Netzwerkverbindung. Der Server könnte langsam sein oder nicht antworten.",
+    "folderNotAccessible": "Wählen Sie einen anderen Ordner oder überprüfen Sie die Ordnerberechtigungen.",
+    "executableNotFound": "Installieren Sie die Anwendung neu, um die erforderlichen Dateien wiederherzustellen."
   },
   "retry": {
     "title": "Automatischer Wiederholungsversuch läuft",
@@ -100,11 +115,6 @@
     "selectAll": "Alle auswählen",
     "deselectAll": "Auswahl aufheben",
     "downloadSelected": "Ausgewählte herunterladen ({{count}})"
-  },
-  "mediaInfo": {
-    "duration": "Dauer",
-    "uploader": "Hochgeladen von",
-    "size": "Größe"
   },
   "queue": {
     "title": "Download-Warteschlange",

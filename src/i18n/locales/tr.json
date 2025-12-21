@@ -114,12 +114,22 @@
     "mergingFiles": "Birleştiriliyor..."
   },
   "errors": {
+    "invalidUrl": "Geçersiz URL. Lütfen URL'yi kontrol edip tekrar deneyin.",
+    "alreadyDownloading": "Bir indirme zaten devam ediyor. Lütfen bekleyin veya önce iptal edin.",
+    "processSpawnError": "İndirme işlemi başlatılamadı. Lütfen tekrar deneyin.",
+    "downloadFailed": "İndirme başarısız oldu. Lütfen tekrar deneyin.",
     "privateVideo": "Bu video özel veya giriş yapılması gerekiyor.",
     "ageRestricted": "Bu video yaş kısıtlamalı.",
     "regionLocked": "Bu video bölgenizde kullanılamıyor.",
     "networkError": "Ağ hatası. Lütfen bağlantınızı kontrol edin.",
     "notFound": "Video bulunamadı. Lütfen URL'yi kontrol edin.",
+    "rateLimited": "Çok fazla istek yapıldı. Lütfen birkaç dakika bekleyip tekrar deneyin.",
+    "authenticationRequired": "Kimlik doğrulaması gerekli. Bu içeriğe erişmek için çerez içe aktarmayı etkinleştirin.",
+    "unsupportedUrl": "Bu URL desteklenmiyor. Lütfen farklı bir URL deneyin.",
+    "timeout": "Bağlantı zaman aşımına uğradı. Lütfen ağınızı kontrol edip tekrar deneyin.",
+    "executableNotFound": "Gerekli çalıştırılabilir dosya bulunamadı. Lütfen uygulamayı yeniden yükleyin.",
     "folderNotAccessible": "Seçilen klasöre yazılamıyor. Lütfen farklı bir konum seçin.",
+    "genericError": "Bir hata oluştu. Lütfen tekrar deneyin.",
     "folderValidationFailed": "Çıktı klasörü doğrulanamadı",
     "diskSpaceWarning": "Uyarı: {{warning}}. İndirme başarısız olabilir.",
     "folderPickerFailed": "Klasör seçici açılamadı"
@@ -127,9 +137,14 @@
   "suggestions": {
     "privateVideo": "Meşru erişiminiz olan içeriklere ulaşmak için tarayıcı çerez içe aktarmayı etkinleştirmeyi deneyin.",
     "ageRestricted": "Yaşınızı doğrulamak için ayarlarda tarayıcı çerez içe aktarmayı etkinleştirin.",
+    "authenticationRequired": "Kimlik doğrulaması gerektiren içeriklere erişmek için ayarlarda tarayıcı çerez içe aktarmayı etkinleştirin.",
     "regionLocked": "Bu içerik konumunuza göre kısıtlanmış.",
     "networkError": "İnternet bağlantınızı kontrol edip tekrar deneyin.",
-    "notFound": "Video kaldırılmış olabilir veya URL yanlış olabilir."
+    "notFound": "Video kaldırılmış olabilir veya URL yanlış olabilir.",
+    "rateLimited": "Çok fazla istek yapıldı. Tekrar denemeden önce birkaç dakika bekleyin.",
+    "timeout": "Ağ bağlantınızı kontrol edin. Sunucu yavaş veya yanıt vermiyor olabilir.",
+    "folderNotAccessible": "Farklı bir klasör seçin veya klasör izinlerini kontrol edin.",
+    "executableNotFound": "Gerekli dosyaları geri yüklemek için uygulamayı yeniden yükleyin."
   },
   "retry": {
     "title": "Otomatik yeniden deneme devam ediyor",
