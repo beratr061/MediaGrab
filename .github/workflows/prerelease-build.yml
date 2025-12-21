@@ -1,6 +1,13 @@
 name: Pre-release Build
 
 on:
+  # Main branch'e push yapıldığında tetiklenir
+  push:
+    branches: [main]
+    paths-ignore:
+      - '**.md'
+      - '.gitignore'
+  
   # Pre-release oluşturulduğunda veya düzenlendiğinde tetiklenir
   release:
     types: [prereleased, edited]
